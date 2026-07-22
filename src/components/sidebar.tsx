@@ -1,0 +1,250 @@
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { signOutClient } from '@/lib/auth/client-sign-out'
+import { Button } from './ui/button'
+import { Card, CardContent } from './ui/card'
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  Receipt, 
+  Users, 
+  Settings,
+  LogOut,
+  Building2,
+  Tag,
+  Megaphone,
+  CreditCard,
+  BarChart3,
+  UserCog,
+  Shield,
+  Pill,
+  Crown,
+  FileText
+} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+
+import { ADMIN_SIDEBAR_NAV } from '@/lib/admin/navigation'
+import { PHARMACY_ROUTES } from '@/lib/routes/pharmacy-paths'
+import { statusToneBadgeClass } from '@/lib/ui/status-tone'
+import { useSaasSubscription } from '@/hooks/useSaasSubscription'
+import { useMeContext } from '@/hooks/useMeContext'
+
+const superAdminNavigation = ADMIN_SIDEBAR_NAV.map((item) => ({
+  name: item.title,
+  href: item.url,
+  icon: item.icon,
+}))
+
+const pharmacyOwnerNavigation = [
+  { name: 'Pharmacy Dashboard', href: PHARMACY_ROUTES.dashboard, icon: LayoutDashboard },
+  { name: 'Inventory', href: PHARMACY_ROUTES.inventory, icon: Package },
+  { name: 'POS', href: PHARMACY_ROUTES.pos, icon: ShoppingCart },
+  { name: 'Sales', href: PHARMACY_ROUTES.sales, icon: Receipt },
+  { name: 'Customers', href: PHARMACY_ROUTES.customers, icon: Users },
+  { name: 'Branches', href: PHARMACY_ROUTES.branches, icon: Building2 },
+  { name: 'Insurance templates', href: '/admin/insurance-templates', icon: FileText },
+  { name: 'Staff Manage', href: PHARMACY_ROUTES.staff, icon: UserCog },
+  { name: 'Settings', href: PHARMACY_ROUTES.settings, icon: Settings },
+]
+
+const pharmacistNavigation = [
+  { name: 'Pharmacist Dashboard', href: PHARMACY_ROUTES.pharmacist, icon: Pill },
+  { name: 'Prescriptions', href: PHARMACY_ROUTES.prescriptions, icon: Receipt },
+  { name: 'Inventory', href: PHARMACY_ROUTES.inventory, icon: Package },
+  { name: 'Customers', href: PHARMACY_ROUTES.customers, icon: Users },
+]
+
+function SubscriptionPlanCard() {
+  const { data } = useSaasSubscription()
+
+  const planName = data?.main_subscription?.plan?.name ?? 'Free'
+  const expiresAt = data?.main_subscription?.expires_at
+  const daysRemaining = expiresAt
+    ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000))
+    : null
+  const status = data?.main_subscription?.status ?? 'free'
+
+  const getStatusColor = () => {
+    if (status === 'expired') return statusToneBadgeClass.danger
+    if (daysRemaining != null && daysRemaining <= 7) return statusToneBadgeClass.danger
+    if (daysRemaining != null && daysRemaining <= 15) return statusToneBadgeClass.caution
+    return statusToneBadgeClass.success
+  }
+
+  return (
+    <Card className="border-blue-200">
+      <CardContent className="p-2">
+        <div className="flex items-center space-x-1 mb-1">
+          <Crown className="h-3 w-3 text-blue-600" />
+          <span className="text-xs font-medium text-gray-900">{planName} Plan</span>
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-gray-500">Days remaining</span>
+            <span className={`text-[10px] px-1 py-0.5 rounded ${getStatusColor()}`}>
+              {daysRemaining == null ? 'No expiry' : `${daysRemaining} days`}
+            </span>
+          </div>
+          <Link href={PHARMACY_ROUTES.settings} className="block">
+            <Button variant="outline" size="sm" className="w-full text-[10px] h-6">
+              Manage Plan
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function Sidebar() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  // Cached — no raw fetch every render
+  const meQuery = useMeContext()
+  const ctx = meQuery.data
+
+  let userRole = ''
+  let userName = 'User'
+  if (ctx) {
+    userRole = ctx.user?.isPlatformAdmin ? 'superadmin' : (ctx.role ?? 'pharmacist')
+    userName = ctx.user?.fullName ?? ctx.user?.email?.split('@')[0] ?? 'User'
+  }
+
+  const getNavigationForRole = () => {
+    switch (userRole) {
+      case 'superadmin': return superAdminNavigation
+      case 'pharmacist': return pharmacistNavigation
+      default: return pharmacyOwnerNavigation
+    }
+  }
+
+  const handleSignOut = async () => {
+    await signOutClient();
+  }
+
+  if (meQuery.isPending) {
+    return (
+      <div className="flex h-screen w-64 flex-col bg-gray-100 border-r border-gray-200">
+        <div className="flex h-16 items-center px-6">
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-bold text-blue-600">Pryro</span>
+            <span className="text-xs text-primary">For pharmacy</span>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-sm text-gray-500">Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className={`flex h-screen ${isCollapsed ? 'w-16' : 'w-64'} flex-col bg-gray-100 border-r border-gray-200 flex-shrink-0 transition-all duration-300`}>
+        <div className="flex h-16 items-center justify-between px-6">
+          {!isCollapsed && (
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-blue-600">Pryro</span>
+              <span className="text-xs text-primary">For pharmacy</span>
+            </div>
+          )}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1 hover:bg-blue-100 rounded-full text-blue-600 transition-colors"
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        </div>
+      
+        {!isCollapsed && (
+          <div className="px-3 py-2">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {userRole === 'superadmin' ? 'Super Admin' : userRole === 'pharmacist' ? 'Pharmacist' : 'Pharmacy Owner'}
+            </div>
+          </div>
+        )}
+      
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {getNavigationForRole().map((item) => {
+          const isActive = pathname === item.href
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                isActive
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-200 hover:text-primary'
+              }`}
+              title={isCollapsed ? item.name : ''}
+            >
+              <item.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} />
+              {!isCollapsed && item.name}
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div className="p-3 space-y-3">
+        {/* Subscription Plan Card - Only for Pharmacy Owners */}
+        {userRole === 'pharmacy_owner' && !isCollapsed && (
+          <SubscriptionPlanCard />
+        )}
+        
+        {!isCollapsed ? (
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-blue-600">
+                      {(userName || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">{userName}</div>
+                    <div className="text-xs text-gray-500">
+                      {userRole === 'superadmin' ? 'Super Admin' : userRole === 'pharmacist' ? 'Pharmacist' : 'Pharmacy Owner'}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleSignOut}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-gray-600 hover:bg-red-50 hover:text-red-600"
+                  title="Sign Out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col items-center space-y-2">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-sm font-medium text-blue-600">
+                {(userName || 'U').charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-gray-600 hover:bg-red-50 hover:text-red-600"
+              title="Sign Out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+      </div>
+    </>
+  )
+}
