@@ -10,6 +10,9 @@ import {
 import { getPlatformConfig } from "@/lib/middleware/platform-config";
 
 const PLATFORM_API_BYPASS_PREFIXES = [
+  // The post-login entry gate depends on this small, authenticated lookup to
+  // choose a workspace. Do not leave valid sessions stranded by a global cap.
+  "/api/auth/bootstrap",
   "/api/polar/webhook",
   "/api/cron/",
 ] as const;

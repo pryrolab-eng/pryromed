@@ -110,6 +110,14 @@ export function AppEntryGate() {
         return;
       }
 
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get("Retry-After"));
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0
+          ? ` Please try again in ${Math.ceil(retryAfter / 60)} minute${retryAfter > 60 ? "s" : ""}.`
+          : " Please wait a few minutes and try again.";
+        throw new Error(`Too many requests from this connection.${wait}`);
+      }
+
       const body = (await res.json()) as
         | SessionBootstrapPayload
         | { ok?: false; reason?: string };
