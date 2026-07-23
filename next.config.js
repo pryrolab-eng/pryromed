@@ -3,9 +3,23 @@
 const pharmacyRedirects = require('./src/lib/routes/pharmacy-paths.redirects.cjs');
 
 const isDev = process.env.NODE_ENV === 'development';
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 const nextConfig = {
     reactStrictMode: false,
+    async rewrites() {
+        // In production, proxy /api/* to the NestJS backend server-side.
+        // This keeps the session cookie on the same domain (Vercel) — no cross-domain cookie issues.
+        // The 8 Next.js auth route handlers (signout, refresh, etc.) take priority over this rewrite
+        // because they are defined in src/app/api/ and Next.js matches app routes before rewrites.
+        if (isDev) return []; // dev: use NEXT_PUBLIC_API_URL directly from the browser
+        return [
+            {
+                source: '/api/:path*',
+                destination: `${backendUrl}/api/:path*`,
+            },
+        ];
+    },
     async redirects() {
         return [
             {
