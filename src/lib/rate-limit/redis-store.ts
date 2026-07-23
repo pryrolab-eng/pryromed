@@ -1,6 +1,17 @@
 import type { ConsumeRateLimitInput, ConsumeRateLimitResult } from "./buckets";
 
-type RedisClient = import("redis").RedisClientType;
+/**
+ * Keep the cache interface structural.  `createClient` can be resolved from a
+ * different copy of `@redis/client` in production builds, making its branded
+ * `RedisClientType` incompatible with an imported alias despite identical
+ * runtime behaviour.
+ */
+type RedisClient = {
+  readonly isOpen: boolean;
+  incr(key: string): Promise<number>;
+  pExpire(key: string, milliseconds: number): Promise<number>;
+  pTTL(key: string): Promise<number>;
+};
 
 let client: RedisClient | null = null;
 let connectPromise: Promise<RedisClient | null> | null = null;
