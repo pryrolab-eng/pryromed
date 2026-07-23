@@ -16,6 +16,13 @@ const PLATFORM_API_BYPASS_PREFIXES = [
   // Public, read-only plan discovery is used before sign-in and must remain
   // available even when a shared network has exhausted its app API quota.
   "/api/plans",
+  // Branding is loaded before and during sign-in, so a shared IP quota must
+  // not prevent the application from rendering its public identity.
+  "/api/branding",
+  // Admin endpoints remain protected by their authorization guards. Exempt
+  // them from the shared-IP cap so an authenticated operator is never locked
+  // out because another user on the same network exhausted the quota.
+  "/api/admin",
   "/api/polar/webhook",
   "/api/cron/",
 ] as const;
