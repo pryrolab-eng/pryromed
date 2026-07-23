@@ -14,36 +14,45 @@ export type SignInFormState = {
 
 async function api(path: string, options?: RequestInit) {
   const { url } = resolveApiUrl(path);
+  const requestHeaders = await headers();
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
+  // Server Actions run in Node, where fetch requires an absolute URL. Keep
+  // browser calls relative so the production rewrite can proxy them to Nest.
+  const requestUrl = url.startsWith("/") && host ? `${protocol}://${host}${url}` : url;
   const cookieStore = await cookies();
   const authCookie = cookieStore.get("pryrox_session")?.value || cookieStore.get("__Secure-pryrox_session")?.value;
   const headersObj: Record<string, string> = { "Content-Type": "application/json", ...(options?.headers as Record<string, string>) };
   if (authCookie) headersObj["Cookie"] = `pryrox_session=${authCookie}`;
-  const res = await fetch(url, { ...options, headers: headersObj });
+  const res = await fetch(requestUrl, { ...options, headers: headersObj });
   const data = await res.json().catch(() => ({}));
   return { ok: res.ok, data, status: res.status, res };
 }
 
-function setCookieValue(name: string, value: string) {
-  try {
-    const store = cookies();
-    store.then((s) => s.set(name, value, { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" }));
-  } catch {}
+async function setCookieValue(name: string, value: string) {
+  const store = await cookies();
+  store.set(name, value, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
 }
 
-function clearCookie(name: string) {
-  try {
-    const store = cookies();
-    store.then((s) => s.set(name, "", { path: "/", maxAge: 0 }));
-  } catch {}
+async function clearCookie(name: string) {
+  const store = await cookies();
+  store.set(name, "", { path: "/", maxAge: 0 });
 }
 
 async function forwardSessionCookies(res: Response) {
   const cookieHeader = res.headers.get("set-cookie");
   if (!cookieHeader) return;
-  for (const part of cookieHeader.split(",")) {
-    const match = part.match(/^([^=]+)=([^;]+)/);
-    if (match) {
-      setCookieValue(match[1], match[2]);
+  const names = /(?:^|,\s*)((?:__Secure-)?pryrox_(?:session|refresh))=([^;,]+)/g;
+  for (const match of Array.from(cookieHeader.matchAll(names))) {
+    const [, name, value] = match;
+    if (name && value) {
+      await setCookieValue(name, value);
     }
   }
 }
@@ -95,10 +104,12 @@ export const signInWithGoogleAction = async () => {
 
 export const signOutAction = async () => {
   await api("/api/auth/sign-out", { method: "POST" });
-  clearCookie("pryrox_session");
-  clearCookie("pryrox_refresh");
-  clearCookie("__Secure-pryrox_session");
-  clearCookie("__Secure-pryrox_refresh");
+  await Promise.all([
+    clearCookie("pryrox_session"),
+    clearCookie("pryrox_refresh"),
+    clearCookie("__Secure-pryrox_session"),
+    clearCookie("__Secure-pryrox_refresh"),
+  ]);
   redirect("/sign-in");
 };
 
