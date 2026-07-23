@@ -1,42 +1,24 @@
-import {
-  isCloudinaryConfigured,
-  uploadPharmacyLogoToCloudinary,
-} from "@/lib/cloudinary/pharmacy-logo";
-import { savePharmacyBrandingRow } from "@/lib/pharmacy/branding-db";
-import {
-  localUploadFileUrl,
-  saveLocalUpload,
-  UPLOAD_CATEGORIES,
-} from "@/lib/storage/local-files";
+import { fetchJson } from "@/lib/http/client";
 
 /**
- * Upload logo to Cloudinary when configured, otherwise local disk (VPS-ready).
- * Always persists pharmacies.logo_url.
+ * Upload a pharmacy logo via the NestJS backend.
+ * The backend handles Cloudinary (when configured) or local storage fallback.
+ * Returns the CDN/local URL that was saved to pharmacies.logo_url.
  */
 export async function uploadAndPersistPharmacyLogo(
-  pharmacyId: string,
-  file: File | { buffer: Buffer; type: string; name: string },
+  file: File,
 ): Promise<string> {
-  const buffer =
-    file instanceof File ? Buffer.from(await file.arrayBuffer()) : file.buffer;
-  const mimeType =
-    file instanceof File ? file.type || "image/png" : file.type || "image/png";
+  const form = new FormData();
+  form.append("file", file);
 
-  let publicUrl: string;
+  const data = await fetchJson<{ success: boolean; logoUrl: string }>(
+    "/api/uploads/logo",
+    {
+      method: "POST",
+      body: form,
+      // Don't set Content-Type — browser sets it with the boundary automatically
+    },
+  );
 
-  if (isCloudinaryConfigured()) {
-    publicUrl = await uploadPharmacyLogoToCloudinary(buffer, pharmacyId, mimeType);
-  } else {
-    const ext = (file instanceof File ? file.name : file.name).split(".").pop() || "png";
-    const objectPath = `${pharmacyId}-${Date.now()}.${ext}`;
-    await saveLocalUpload({
-      category: UPLOAD_CATEGORIES.pharmacyLogos,
-      objectPath,
-      buffer,
-    });
-    publicUrl = localUploadFileUrl(UPLOAD_CATEGORIES.pharmacyLogos, objectPath);
-  }
-
-  await savePharmacyBrandingRow(pharmacyId, { logoUrl: publicUrl });
-  return publicUrl;
+  return data.logoUrl;
 }

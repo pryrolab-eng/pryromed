@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "dev:backend": "npm run start:dev --prefix ../backend",
     "dev:stack": "concurrently --names next,api --prefix-colors blue,magenta \"npm run dev\" \"npm run dev:backend\""
   },
