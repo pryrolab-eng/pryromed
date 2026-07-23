@@ -16,8 +16,10 @@ import {
   PHARMACY_NAV_ITEMS,
   type NavItemConfig,
 } from "@/lib/subscription/nav-config";
-import { POST_AUTH_ENTRY_PATH } from "@/lib/auth/resolve-home-redirect";
 import { PHARMACY_ROUTES } from "@/lib/routes/pharmacy-paths";
+
+/** Post-login entry URL - role router only; not a workspace UI. */
+export const POST_AUTH_ENTRY_PATH = "/app";
 
 function navUrls(items: NavItemConfig[]): string[] {
   return items.map((item) => {

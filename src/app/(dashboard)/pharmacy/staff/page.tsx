@@ -13,7 +13,7 @@ import {
   type StaffInviteCredentials,
 } from '@/lib/http/pharmacist'
 import { ApiError } from '@/lib/http/client'
-import { STAFF_INVITE_EMAIL_REJECTED_CODE } from '@/lib/staff/staff-invite-email'
+const STAFF_INVITE_EMAIL_REJECTED_CODE = 'email_unavailable'
 import type { StaffUser } from '@/lib/http/staff'
 import { staffStats } from '@/lib/staff/format-staff'
 import {

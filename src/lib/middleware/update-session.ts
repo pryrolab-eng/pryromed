@@ -21,7 +21,7 @@ import {
 } from "@/lib/auth/sensitive-query-params";
 import { enforcePlatformApiRateLimit, enforcePlatformIntegrationKeyRateLimit } from "@/lib/rate-limit/enforce";
 import { isMaintenanceExemptPath } from "@/lib/platform-policy/maintenance";
-import { storeGetIsPlatformAdmin } from "@/lib/db/public-users-store";
+import { resolveIsAppPlatformAdmin } from "@/lib/platform-admin";
 import { getPlatformConfig } from "@/lib/middleware/platform-config";
 
 function hasAuthCookies(request: NextRequest): boolean {
@@ -129,7 +129,7 @@ export const updateSession = async (request: NextRequest) => {
     if (maintenanceActive) {
       const maintenanceUserId = await getNativeUserIdFromRequest(request);
       const isPlatformAdmin = maintenanceUserId
-        ? await storeGetIsPlatformAdmin(maintenanceUserId)
+        ? await resolveIsAppPlatformAdmin(maintenanceUserId)
         : false;
 
       if (!isPlatformAdmin) {

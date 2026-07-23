@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/auth/get-auth-user";
-import { storeGetIsPlatformAdmin } from "@/lib/db/public-users-store";
-import { storeListActiveMembershipsForUser } from "@/lib/db/pharmacy-users-store";
-import { selectPrimaryMembership } from "@/utils/select-pharmacy-membership";
+import { resolveActivePharmacyContext } from "@/lib/pharmacy/active-pharmacy";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { SuperadminSidebar } from "@/components/superadmin-sidebar";
 import { DashboardShellBar } from "@/components/shell/dashboard-shell-bar";
@@ -24,15 +22,10 @@ export default async function AdminLayout({
     redirect("/sign-in");
   }
 
-  const [isPlatformAdminFlag, membershipRows] = await Promise.all([
-    storeGetIsPlatformAdmin(user.id),
-    storeListActiveMembershipsForUser(user.id),
-  ]);
-  const primary = selectPrimaryMembership(membershipRows);
+  const ctx = await resolveActivePharmacyContext(user.id);
   const isPlatformAdmin =
-    isPlatformAdminFlag ||
-    primary?.role === "superadmin" ||
-    primary?.role === "admin";
+    ctx.isPlatformAdmin ||
+    ctx.memberships.some((m) => m.role === "superadmin" || m.role === "admin");
 
   if (!isPlatformAdmin) {
     redirect("/app");

@@ -10,7 +10,11 @@ import { pharmacyDashboardKeys } from "@/lib/http/pharmacy-dashboard";
 import { saasKeys } from "@/lib/http/saas";
 import { entitlementsKeys } from "@/lib/http/entitlements";
 import { staffUsersQueryKey } from "@/lib/http/staff";
-import type { SessionBootstrapPayload } from "@/lib/auth/session-bootstrap-types";
+interface SessionBootstrapPayload {
+  ok: boolean; path: string; mustChangePassword: boolean;
+  me: { user: { id: string; email: string | null; fullName: string | null; isPlatformAdmin: boolean }; activePharmacyId: string | null; activeBranchId: string | null; role: string | null; allowedBranchIds: string[] | null; permissions: string[]; mustChangePassword: boolean; memberships: Array<{ pharmacyId: string; pharmacyName: string | null; role: string | null; isActive: boolean }> };
+  entitlements: null; dashboard: Record<string, unknown> | null; subscription: null; plans: null; staff: null;
+}
 import { resolveApiUrl } from "@/lib/http/migrated-api-prefixes";
 
 /** Abort and offer retry if bootstrap takes too long (dev cold-compile can exceed 20s). */

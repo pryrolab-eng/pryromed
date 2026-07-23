@@ -1,4 +1,25 @@
-import type { InsuranceMonthlyReport } from "@/lib/insurance/monthly-report";
+// InsuranceMonthlyReport type — was previously in monthly-report.ts (deleted, DB layer removed)
+export type InsuranceMonthlyReport = {
+  pharmacy: { name: string; address: string | null; phone: string | null; email: string | null };
+  period: { month: number; year: number };
+  claims: Array<{
+    patientName: string;
+    insuranceNumber: string | null;
+    insuranceType: string;
+    date: string;
+    status: string;
+    totalClaim: number;
+    patientCopay: number;
+    items: Array<{
+      drug: string;
+      externalCode: string | null;
+      quantity: number;
+      unitPrice: number;
+      insurancePays: number;
+      patientPays: number;
+    }>;
+  }>;
+};
 
 export type InsuranceReportTemplate = {
   template_html: string;

@@ -16,8 +16,6 @@ import {
   DashboardProviders,
 } from '@/components/shell/dashboard-providers'
 import { DashboardCommandPalette, AdminCommandPalette } from '@/components/dashboard'
-import { storeListActiveMembershipsForUser } from '@/lib/db/pharmacy-users-store'
-import { storeGetIsPlatformAdmin } from '@/lib/db/public-users-store'
 import { AiSlideOverPanel } from '@/components/ai-panel'
 import { BranchScopeProvider } from '@/hooks/useBranchScope'
 
@@ -31,42 +29,10 @@ export default async function DashboardLayout({
     redirect('/sign-in')
   }
 
-  let isPlatformAdminFlag = false
-  let membershipRows: Awaited<ReturnType<typeof storeListActiveMembershipsForUser>> = []
-
-  try {
-    const [flag, rows] = await Promise.all([
-      storeGetIsPlatformAdmin(user.id),
-      storeListActiveMembershipsForUser(user.id),
-    ])
-    isPlatformAdminFlag = flag
-    membershipRows = rows
-  } catch (err) {
-    console.error('[DashboardLayout] Failed to load user roles:', err)
-    // Fail open: treat as non-platform-admin so user sees pharmacy dashboard
-    // (or redirect to error page if you prefer strictness)
-    isPlatformAdminFlag = false
-    membershipRows = []
-  }
-
-  const userProfile = selectPrimaryMembership(membershipRows)
-
-  const isPlatformAdmin =
-    isPlatformAdminFlag ||
-    userProfile?.role === 'superadmin' ||
-    userProfile?.role === 'admin'
-
-  let userRole = userProfile?.role || 'pharmacy_owner'
-
-  if (!isPlatformAdmin && user) {
-    let activeCtx: Awaited<ReturnType<typeof resolveActivePharmacyContext>> = { activePharmacyId: null, activeBranchId: null, role: null, memberships: [] }
-    try {
-      activeCtx = await resolveActivePharmacyContext(user.id)
-    } catch (err) {
-      console.error('[DashboardLayout] Failed to resolve active pharmacy context:', err)
-    }
-    userRole = activeCtx.role ?? userRole
-  }
+  const ctx = await resolveActivePharmacyContext(user.id)
+  const isPlatformAdmin = ctx.isPlatformAdmin
+  const userProfile = selectPrimaryMembership(ctx.memberships)
+  const userRole = userProfile?.role || ctx.role || 'pharmacy_owner'
 
   const getSidebar = () => {
     if (isPlatformAdmin) return <SuperadminSidebar />

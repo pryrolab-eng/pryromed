@@ -1,9 +1,3 @@
-import { getAllowUserTwoFactorFromDb } from "@/lib/platform-settings";
-
-export const PLATFORM_SECURITY_KEYS = {
-  allowUserTwoFactor: "allowUserTwoFactor",
-} as const;
-
 /** Parse jsonb `setting_value` from system_settings. */
 export function parseSystemSettingValue(raw: unknown): unknown {
   if (raw === null || raw === undefined) return undefined;
@@ -21,9 +15,7 @@ export function parseBooleanSetting(raw: unknown, defaultValue: boolean): boolea
   return defaultValue;
 }
 
-/**
- * Platform-wide: when true, pharmacy owners/staff may enable 2FA on their own account.
- */
+/** Platform-wide: when true, pharmacy owners/staff may enable 2FA on their own account. */
 export async function getAllowUserTwoFactor(): Promise<boolean> {
-  return getAllowUserTwoFactorFromDb();
+  return true;
 }

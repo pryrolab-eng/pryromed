@@ -5,24 +5,17 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbopack",
-    "dev:app": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "start:built": "next build && next start",
     "lint": "next lint",
-    "worker": "npx tsx src/lib/queue/maintenance-notify-worker.ts",
     "dev:backend": "npm run start:dev --prefix ../backend",
-    "dev:stack": "concurrently --names next,api --prefix-colors blue,magenta \"npm run dev\" \"npm run dev:backend\"",
-    "dev:all": "concurrently --names dev,worker --prefix-colors blue,green \"npm run dev\" \"npm run worker\""
+    "dev:stack": "concurrently --names next,api --prefix-colors blue,magenta \"npm run dev\" \"npm run dev:backend\""
   },
   "dependencies": {
     "@a2ui/react": "^0.10.1",
     "@a2ui/web_core": "^0.10.4",
     "@assistant-ui/react": "^0.14.26",
     "@assistant-ui/react-markdown": "^0.14.5",
-    "@bull-board/api": "^8.0.1",
-    "@bull-board/express": "^8.0.1",
-    "@clickhouse/client": "^1.23.1",
     "@hookform/resolvers": "^3.3.4",
     "@next/bundle-analyzer": "^16.2.6",
     "@polar-sh/sdk": "^0.47.1",
@@ -61,10 +54,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.0.1",
-    "bcryptjs": "^3.0.3",
-    "bullmq": "^5.79.1",
     "class-variance-authority": "^0.7.1",
-    "cloudinary": "^2.10.0",
     "clsx": "^2.1.0",
     "cmdk": "^1.1.1",
     "date-fns": "^3.3.1",
@@ -74,7 +64,6 @@
     "framer-motion": "^11.0.3",
     "i18next": "^26.2.0",
     "i18next-browser-languagedetector": "^8.2.1",
-    "ioredis": "^5.11.1",
     "jose": "^6.2.3",
     "jsbarcode": "^3.11.5",
     "jspdf": "^4.0.0",
@@ -84,8 +73,6 @@
     "motion": "^12.23.22",
     "next": "16.2.6",
     "next-themes": "^0.4.6",
-    "nodemailer": "^8.0.7",
-    "openai": "^6.44.0",
     "otplib": "^12.0.1",
     "postcss": "^8",
     "qrcode": "^1.5.4",
@@ -113,8 +100,6 @@
   },
   "devDependencies": {
     "@tanstack/react-query-devtools": "^5.100.10",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/nodemailer": "^8.0.0",
     "@types/qrcode": "^1.5.6",
     "concurrently": "^10.0.3"
   }

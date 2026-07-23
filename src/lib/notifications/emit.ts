@@ -1,5 +1,4 @@
-import { getEnableNotifications } from "@/lib/platform-settings";
-import { storeEnqueueNotificationOutbox } from "@/lib/db/notifications-store";
+import { resolveApiUrl } from "@/lib/http/migrated-api-prefixes";
 
 export type NotificationEventInput = {
   eventType: string;
@@ -8,45 +7,31 @@ export type NotificationEventInput = {
   payload?: Record<string, unknown>;
 };
 
-export type EmitNotificationOptions = {
-  /**
-   * When true (default), process the outbox right after enqueue — like a Nest
-   * @OnEvent listener. Cron remains a safety net for failed rows.
-   */
-  dispatchImmediately?: boolean;
-};
-
 export async function emitNotificationEvent(
   input: NotificationEventInput,
-  options?: EmitNotificationOptions,
 ): Promise<string | null> {
-  if (!(await getEnableNotifications())) return null;
-
   const payload = input.payload ?? {};
-  const dispatchImmediately = options?.dispatchImmediately !== false;
+  const title = typeof payload.title === "string" ? payload.title : input.eventType;
+  const message =
+    typeof payload.message === "string" ? payload.message : input.eventType;
 
   try {
-    const outboxId = await storeEnqueueNotificationOutbox({
-      eventType: input.eventType,
-      pharmacyId: input.pharmacyId,
-      userId: input.userId,
-      payload,
+    const { url } = resolveApiUrl("/api/notifications");
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        message,
+        type: typeof payload.type === "string" ? payload.type : "info",
+      }),
     });
-    if (dispatchImmediately) {
-      await dispatchAfterEnqueue();
-    }
-    return outboxId;
+    if (!res.ok) return null;
+    const data = (await res.json()) as { success?: boolean; notification?: { id: string } };
+    return data?.notification?.id ?? null;
   } catch (error) {
     console.error("emitNotificationEvent:", error);
     return null;
-  }
-}
-
-async function dispatchAfterEnqueue(): Promise<void> {
-  try {
-    const { dispatchPendingNotifications } = await import("./dispatch");
-    await dispatchPendingNotifications();
-  } catch (error) {
-    console.error("emitNotificationEvent dispatch:", error);
   }
 }

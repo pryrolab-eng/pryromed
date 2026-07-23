@@ -1,9 +1,24 @@
+import { randomUUID } from "crypto";
 import { getAiClient, AI_MODEL, AI_DEFAULTS } from "./client";
-import {
-  createTraceId,
-  recordAiTrace,
-  extractTokenUsage,
-} from "./observability";
+
+function createTraceId(): string {
+  return randomUUID();
+}
+
+type UsageLike = {
+  prompt_tokens?: number | null;
+  completion_tokens?: number | null;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+} | null | undefined;
+
+function extractTokenUsage(completion: { usage?: UsageLike }) {
+  const usage = completion.usage;
+  return {
+    inputTokens: Number(usage?.prompt_tokens ?? usage?.input_tokens ?? 0) || 0,
+    outputTokens: Number(usage?.completion_tokens ?? usage?.output_tokens ?? 0) || 0,
+  };
+}
 
 export type AnalyticsData = {
   daily: number[];
@@ -129,9 +144,6 @@ export async function generateAnalyticsInsights(
   const client = getAiClient();
   if (!client) return buildFallbackInsights(data);
 
-  const traceId = createTraceId();
-  const resolvedTenantId = tenantId ?? null;
-
   const dataSummary = JSON.stringify({
     daily: data.daily,
     weekly: data.weekly,
@@ -169,32 +181,13 @@ export async function generateAnalyticsInsights(
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch?.[0] ?? "{}") as NemotronAnalyticsResponse;
     } catch {
-      recordAiTrace({
-        traceId, tenantId: resolvedTenantId, feature: "analytics", model: AI_MODEL,
-        inputTokens: tokens.inputTokens, outputTokens: tokens.outputTokens,
-        latencyMs, success: false, fallback: true, error: "JSON parse failed",
-        timestamp: new Date().toISOString(),
-      });
       return buildFallbackInsights(data);
     }
 
     const insights = parsed.insights;
     if (!insights) {
-      recordAiTrace({
-        traceId, tenantId: resolvedTenantId, feature: "analytics", model: AI_MODEL,
-        inputTokens: tokens.inputTokens, outputTokens: tokens.outputTokens,
-        latencyMs, success: false, fallback: true, error: "No insights in response",
-        timestamp: new Date().toISOString(),
-      });
       return buildFallbackInsights(data);
     }
-
-    recordAiTrace({
-      traceId, tenantId: resolvedTenantId, feature: "analytics", model: AI_MODEL,
-      inputTokens: tokens.inputTokens, outputTokens: tokens.outputTokens,
-      latencyMs, success: true, fallback: false,
-      timestamp: new Date().toISOString(),
-    });
 
     return {
       summary: insights.summary ?? buildFallbackInsights(data).summary,
@@ -215,12 +208,6 @@ export async function generateAnalyticsInsights(
     };
   } catch (error) {
     console.warn("AI analytics failed, falling back:", error);
-    recordAiTrace({
-      traceId, tenantId: resolvedTenantId, feature: "analytics", model: AI_MODEL,
-      inputTokens: 0, outputTokens: 0, latencyMs: 0, success: false, fallback: true,
-      error: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString(),
-    });
     return buildFallbackInsights(data);
   }
 }

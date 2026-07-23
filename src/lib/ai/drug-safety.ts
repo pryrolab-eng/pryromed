@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { getAiClient, AI_MODEL, AI_DEFAULTS } from "./client";
 import {
   DRUG_INTERACTION_RULES,
@@ -7,11 +8,13 @@ import {
   normalizeDrugName,
   type SafetySeverity,
 } from "@/lib/clinical/drug-safety-rules";
-import {
-  createTraceId,
-  recordAiTrace,
-  extractTokenUsage,
-} from "./observability";
+
+function createTraceId(): string { return randomUUID(); }
+type UsageLike = { prompt_tokens?: number | null; completion_tokens?: number | null; input_tokens?: number | null; output_tokens?: number | null; } | null | undefined;
+function extractTokenUsage(c: { usage?: UsageLike }) {
+  const u = c.usage;
+  return { inputTokens: Number(u?.prompt_tokens ?? u?.input_tokens ?? 0) || 0, outputTokens: Number(u?.completion_tokens ?? u?.output_tokens ?? 0) || 0 };
+}
 
 export type AiDrugSafetyInput = {
   name: string;
@@ -182,23 +185,13 @@ async function generateAnalysis(
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     parsed = JSON.parse(jsonMatch?.[0] ?? "{}") as NemotronResponse;
   } catch {
-    recordAiTrace({
-      traceId, tenantId, feature: "drug_safety", model: AI_MODEL,
-      inputTokens: tokens.inputTokens, outputTokens: tokens.outputTokens,
-      latencyMs, success: false, fallback: true, error: "JSON parse failed",
-      timestamp: new Date().toISOString(),
-    });
+    
     throw new Error("Failed to parse AI response");
   }
 
   const analysis = parsed.analysis;
   if (!analysis) {
-    recordAiTrace({
-      traceId, tenantId, feature: "drug_safety", model: AI_MODEL,
-      inputTokens: tokens.inputTokens, outputTokens: tokens.outputTokens,
-      latencyMs, success: false, fallback: true, error: "No analysis in response",
-      timestamp: new Date().toISOString(),
-    });
+    
     throw new Error("No analysis in AI response");
   }
 
@@ -354,11 +347,7 @@ export async function analyzeDrugSafety(
     const verdict = criticValidate(items, aiResult);
 
     if (verdict.valid) {
-      recordAiTrace({
-        traceId, tenantId: resolvedTenantId, feature: "drug_safety", model: AI_MODEL,
-        inputTokens, outputTokens, latencyMs: 0, success: true, fallback: false,
-        timestamp: new Date().toISOString(),
-      });
+      
       return verdict.mergedResult ?? aiResult;
     }
 
@@ -370,12 +359,7 @@ export async function analyzeDrugSafety(
 
         const retryVerdict = criticValidate(items, retryResult);
         if (retryVerdict.valid) {
-          recordAiTrace({
-            traceId, tenantId: resolvedTenantId, feature: "drug_safety", model: AI_MODEL,
-            inputTokens: inputTokens + retryIn, outputTokens: outputTokens + retryOut,
-            latencyMs: 0, success: true, fallback: false,
-            timestamp: new Date().toISOString(),
-          });
+          
           return retryVerdict.mergedResult ?? retryResult;
         }
       } catch {
@@ -385,21 +369,12 @@ export async function analyzeDrugSafety(
 
     // Critic rejected after retry — fall back to local rules
     console.warn("Critic rejected AI output, falling back to local rules:", verdict.issues);
-    recordAiTrace({
-      traceId, tenantId: resolvedTenantId, feature: "drug_safety", model: AI_MODEL,
-      inputTokens, outputTokens, latencyMs: 0, success: false, fallback: true,
-      error: `Critic issues: ${verdict.issues.join("; ")}`,
-      timestamp: new Date().toISOString(),
-    });
+    
     return buildLocalResult(items);
   } catch (aiError) {
     console.warn("AI safety analysis failed, falling back to rules:", aiError);
-    recordAiTrace({
-      traceId, tenantId: resolvedTenantId, feature: "drug_safety", model: AI_MODEL,
-      inputTokens: 0, outputTokens: 0, latencyMs: 0, success: false, fallback: true,
-      error: aiError instanceof Error ? aiError.message : String(aiError),
-      timestamp: new Date().toISOString(),
-    });
+    
     return buildLocalResult(items);
   }
 }
+

@@ -88,7 +88,7 @@ import {
   useCreateAdminFeatureMutation,
   useUpdateAdminFeatureMutation,
 } from "@/hooks/useAdminFeatures";
-import type { PlatformFeatureRow } from "@/lib/subscription/plan-features";
+import type { PlatformFeatureRow } from "@/lib/http/admin/features";
 import type { UpsertPlatformFeatureInput } from "@/lib/http/admin/features";
 
 const PAGE_SIZE = 15;

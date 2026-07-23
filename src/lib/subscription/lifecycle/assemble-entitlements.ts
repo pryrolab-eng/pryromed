@@ -7,7 +7,6 @@ import type {
 import { isBranchAddonCatalogName } from "../normalize-plan";
 import { resolveAccessBlockReason } from "@/lib/subscription/access-block";
 import { normalizeLifecycleStatus, statusGrantsAccess } from "./status";
-import { getMaxUsersPerPharmacy } from "@/lib/platform-settings";
 import {
   buildEntitlementHelpers,
   buildLimits,
@@ -143,16 +142,6 @@ export async function assemblePharmacyEntitlements(
   ]);
 
   const limits = buildLimits(effectivePlan, capacity.totalSlots);
-  const platformUserCap = await getMaxUsersPerPharmacy();
-  limits.maxUsers = Math.min(limits.maxUsers, platformUserCap);
-  const helpers = buildEntitlementHelpers(
-    featureKeys,
-    limits,
-    usage,
-    isAccessAllowed,
-    accessBlockReason,
-  );
-
   return {
     pharmacyId,
     pharmacyStatus,
@@ -171,6 +160,12 @@ export async function assemblePharmacyEntitlements(
     featureKeys,
     limits,
     usage,
-    ...helpers,
+    ...buildEntitlementHelpers(
+      featureKeys,
+      limits,
+      usage,
+      isAccessAllowed,
+      accessBlockReason,
+    ),
   };
 }

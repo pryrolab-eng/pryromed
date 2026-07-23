@@ -1,7 +1,18 @@
 import { ensureApiSuccess, fetchJson } from "../client";
-import type { PlatformFeatureRow } from "@/lib/subscription/plan-features";
 
 export const adminFeaturesQueryKey = ["admin", "features"] as const;
+
+export type PlatformFeatureRow = {
+  key: string;
+  display_name: string;
+  description: string | null;
+  group: string;
+  feature_type: "boolean" | "limit" | "metered";
+  limit_column: string | null;
+  nav_routes: string[];
+  sort_order: number;
+  is_active: boolean;
+};
 
 export type UpsertPlatformFeatureInput = {
   key: string;

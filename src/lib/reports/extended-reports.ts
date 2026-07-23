@@ -1,11 +1,9 @@
-import type { payment_method } from "@prisma/client";
-
 export type SalesReportRow = {
   total_amount: number;
   created_at: string;
   id: string;
   customer_name: string | null;
-  payment_method: payment_method | null;
+  payment_method: string | null;
 };
 
 export function aggregateRevenueByPaymentMethod(rows: SalesReportRow[]) {

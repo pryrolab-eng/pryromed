@@ -1,7 +1,6 @@
-import { resolveActivePharmacyContext } from "@/lib/pharmacy/active-pharmacy";
+import { getMeContext } from "@/lib/http/me-context";
 import {
   hasPermission,
-  loadRolePermissions,
   type PharmacyPermission,
 } from "@/lib/rbac/permissions";
 
@@ -17,15 +16,14 @@ export async function requirePharmacyPermission(
   userId: string,
   permission: PharmacyPermission,
 ) {
-  const ctx = await resolveActivePharmacyContext(userId);
+  const ctx = await getMeContext();
   if (!ctx.activePharmacyId) {
     throw new PharmacyPermissionError("Pharmacy not found");
   }
-  const permissions = await loadRolePermissions(ctx.role);
-  if (!hasPermission(permissions, permission)) {
+  if (!hasPermission(ctx.permissions, permission)) {
     throw new PharmacyPermissionError();
   }
-  return { ctx, permissions };
+  return { ctx, permissions: ctx.permissions };
 }
 
 export function permissionErrorResponse(error: unknown) {

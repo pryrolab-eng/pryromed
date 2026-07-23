@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { encodeCategoryCatalogValue } from "@/lib/db/medication-category-ref";
+import { encodeCategoryCatalogValue } from "@/lib/pharmacy/category-catalog";
 import type { CategoryCatalogItem } from "@/lib/pharmacy/category-catalog";
 
 const CREATE_VALUE = "__create_category__";

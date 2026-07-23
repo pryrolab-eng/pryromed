@@ -40,7 +40,7 @@ import { fetchJson } from '@/lib/http/client'
 import type { AdminPharmacyRow } from '@/lib/http/admin/pharmacies'
 import type { AdminBillingReconciliationRow } from '@/lib/http/admin/billing'
 import { formatMoney, getPlatformCurrency } from '@/lib/platform-currency'
-import { getPendingPaymentMaxAgeDays } from '@/lib/admin/cancel-pending-billing'
+
 import {
   statusToneIconClass,
   statusToneTextClass,
@@ -159,7 +159,7 @@ export function AdminBillingPanel() {
       if (b === platformCurrency) return 1
       return a.localeCompare(b)
     })
-  const expireDays = getPendingPaymentMaxAgeDays()
+  const expireDays = 7
   const reconCount = reconciliation.length
 
   const volumeValue =

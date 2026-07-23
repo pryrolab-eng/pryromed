@@ -1,6 +1,5 @@
-import { prisma } from "@/lib/db/prisma";
+import { getSaasBranches, createSaasBranch } from "@/lib/http/saas-branches";
 
-/** Default name for the auto-provisioned distribution site (not a satellite branch). */
 export const HEADQUARTERS_BRANCH_NAME = "Headquarters (HQ)";
 
 export type BranchRow = {
@@ -10,62 +9,52 @@ export type BranchRow = {
   is_active?: boolean;
 };
 
-/** Active HQ branch id for a pharmacy, if any. */
 export async function resolveHeadquartersBranchId(
   pharmacyId: string,
 ): Promise<string | null> {
-  const row = await prisma.branches.findFirst({
-    where: {
-      pharmacy_id: pharmacyId,
-      is_active: true,
-      is_headquarters: true,
-    },
-    orderBy: { created_at: "asc" },
-    select: { id: true },
-  });
-
-  return row?.id ?? null;
+  try {
+    const { branches } = await getSaasBranches();
+    const hq = branches.find(
+      (b) => b.is_headquarters === true && b.is_active !== false,
+    );
+    return hq?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
-/** Preferred stocking location: HQ first, else oldest active branch. */
 export async function resolveDefaultStockingBranchId(
   pharmacyId: string,
 ): Promise<string | null> {
   const hq = await resolveHeadquartersBranchId(pharmacyId);
   if (hq) return hq;
 
-  const row = await prisma.branches.findFirst({
-    where: { pharmacy_id: pharmacyId, is_active: true },
-    orderBy: { created_at: "asc" },
-    select: { id: true },
-  });
-
-  return row?.id ?? null;
+  try {
+    const { branches } = await getSaasBranches();
+    const active = branches.filter((b) => b.is_active !== false);
+    active.sort(
+      (a, b) =>
+        new Date(a.created_at ?? 0).getTime() -
+        new Date(b.created_at ?? 0).getTime(),
+    );
+    return active[0]?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Ensures exactly one HQ exists for POS/inventory when a pharmacy has no locations yet.
- * Uses DB advisory lock via `ensure_pharmacy_hq_branch` to avoid duplicate rows on concurrent requests.
- */
 export async function ensureHeadquartersBranch(
   pharmacyId: string,
 ): Promise<string | null> {
-  try {
-    const rows = await prisma.$queryRaw<
-      [{ ensure_pharmacy_hq_branch: string | null }]
-    >`
-      SELECT ensure_pharmacy_hq_branch(${pharmacyId}::uuid) AS ensure_pharmacy_hq_branch
-    `;
-    const id = rows[0]?.ensure_pharmacy_hq_branch;
-    if (id) return id;
-  } catch (error) {
-    console.error(
-      "ensureHeadquartersBranch rpc:",
-      error instanceof Error ? error.message : error,
-    );
-  }
+  const existing = await resolveHeadquartersBranchId(pharmacyId);
+  if (existing) return existing;
 
-  return resolveDefaultStockingBranchId(pharmacyId);
+  try {
+    const branch = await createSaasBranch({ name: HEADQUARTERS_BRANCH_NAME });
+    return branch.id;
+  } catch {
+    return resolveDefaultStockingBranchId(pharmacyId);
+  }
 }
 
 export function isHeadquartersBranch(
@@ -77,7 +66,7 @@ export function isHeadquartersBranch(
   return (
     n.includes("headquarters") ||
     n.includes("(hq)") ||
-    n.endsWith("— main") ||
+    n.endsWith("\u2014 main") ||
     n.endsWith("- main")
   );
 }

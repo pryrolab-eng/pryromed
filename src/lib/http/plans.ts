@@ -21,9 +21,14 @@ export type PlanRow = {
 };
 
 export async function getSubscriptionPlans(): Promise<PlanRow[]> {
-  const data = await fetchJson<PlanRow[]>("/api/plans", {
+  const data = await fetchJson<PlanRow[] | { plans: PlanRow[] }>("/api/plans", {
     credentials: "include",
     cache: "no-store",
   });
-  return Array.isArray(data) ? data : [];
+  // Backend returns { plans: [...] }, guard against both shapes
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object" && "plans" in data && Array.isArray((data as { plans: unknown }).plans)) {
+    return (data as { plans: PlanRow[] }).plans;
+  }
+  return [];
 }

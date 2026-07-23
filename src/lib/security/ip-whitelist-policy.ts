@@ -1,9 +1,4 @@
-import { parseBooleanSetting } from "@/lib/platform-security-policy";
-import {
-  storeGetPharmacyIpWhitelistEnabled,
-  storeGetPlatformIpWhitelistEnabled,
-  storeListActiveWhitelistIps,
-} from "@/lib/db/ip-whitelist-store";
+import { resolveApiUrl } from "@/lib/http/migrated-api-prefixes";
 import { ipMatchesAllowlist } from "@/lib/security/ip-address";
 
 export type IpWhitelistPolicy = {
@@ -31,15 +26,30 @@ export function invalidateIpWhitelistCache(pharmacyId?: string | null): void {
   pharmacyCache.delete(pharmacyId);
 }
 
+async function fetchJson<T>(path: string): Promise<T | null> {
+  try {
+    const { url } = resolveApiUrl(path);
+    const res = await fetch(url, { credentials: "include", cache: "no-store" });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function getPlatformIpWhitelistPolicy(): Promise<IpWhitelistPolicy> {
   const now = Date.now();
   if (platformCache.entry && platformCache.entry.expiresAt > now) {
     return platformCache.entry.policy;
   }
 
-  const settingValue = await storeGetPlatformIpWhitelistEnabled();
-  const enabled = parseBooleanSetting(settingValue, false);
-  const ips = await storeListActiveWhitelistIps(null);
+  const [settings, list] = await Promise.all([
+    fetchJson<{ settings: { ipWhitelistEnabled?: boolean } }>("/api/admin/system-settings"),
+    fetchJson<{ ips: { ipAddress: string }[] }>("/api/admin/ip-whitelist"),
+  ]);
+
+  const enabled = settings?.settings?.ipWhitelistEnabled === true;
+  const ips = list?.ips?.map((e) => e.ipAddress) ?? [];
 
   const policy = { enabled, ips };
   platformCache.entry = { policy, expiresAt: now + CACHE_TTL_MS };
@@ -55,8 +65,12 @@ export async function getPharmacyIpWhitelistPolicy(
     return cached.policy;
   }
 
-  const enabled = await storeGetPharmacyIpWhitelistEnabled(pharmacyId);
-  const ips = await storeListActiveWhitelistIps(pharmacyId);
+  const list = await fetchJson<{ ips: { ipAddress: string; enabled?: boolean }[] }>(
+    `/api/settings/security/ip-whitelist/manage`,
+  );
+
+  const enabled = list?.ips?.some((e) => e.enabled) ?? false;
+  const ips = list?.ips?.map((e) => e.ipAddress) ?? [];
 
   const policy = { enabled, ips };
   pharmacyCache.set(pharmacyId, { policy, expiresAt: now + CACHE_TTL_MS });

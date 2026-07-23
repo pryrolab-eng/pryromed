@@ -16,4 +16,3 @@ export {
   queryActiveCustomerCount,
 } from "./queries";
 export { shouldPreferClickHouseReads } from "./read-policy";
-export { syncSalesToClickHouse, pushSaleToClickHouse, scheduleSaleClickHouseSync } from "./sync-sales";

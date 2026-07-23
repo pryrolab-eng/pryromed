@@ -1,46 +1,34 @@
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/auth-mode";
-import {
-  getNativeRefreshJwtFromRequest,
-  getNativeSessionJwtFromRequest,
-  resolveNativeAuthUserWithRefresh,
-} from "@/lib/auth/native/session";
+import { resolveApiUrl } from "@/lib/http/migrated-api-prefixes";
 import type { AuthUser } from "@/lib/auth/types";
 
 export type { AuthUser };
 
-/** Server-side: resolve current user from native session cookies. */
-export type GetAuthUserOptions = {
-  /** Re-check app_sessions in DB (e.g. change-password). Default uses 60s cache. */
-  strictNativeSession?: boolean;
-};
+export async function getAuthUser(request?: NextRequest): Promise<AuthUser | null> {
+  try {
+    let cookieStr = "";
 
-export async function getAuthUser(
-  request?: NextRequest,
-  options?: GetAuthUserOptions,
-): Promise<AuthUser | null> {
-  const strict = options?.strictNativeSession === true;
-  if (request) {
-    return resolveNativeAuthUserWithRefresh({
-      accessJwt: getNativeSessionJwtFromRequest(request),
-      refreshJwt: getNativeRefreshJwtFromRequest(request),
-      strict,
-      writeCookies: true,
-    });
+    if (request) {
+      const cookie = request.cookies.get("pryrox_session")?.value || request.cookies.get("__Secure-pryrox_session")?.value;
+      if (cookie) cookieStr = `pryrox_session=${cookie}`;
+    } else {
+      const { cookies: serverCookies } = await import("next/headers");
+      const store = await serverCookies();
+      const cookie = store.get("pryrox_session")?.value || store.get("__Secure-pryrox_session")?.value;
+      if (cookie) cookieStr = `pryrox_session=${cookie}`;
+    }
+
+    if (!cookieStr) return null;
+
+    const { url } = resolveApiUrl("/api/auth/me");
+    const res = await fetch(url, { headers: { Cookie: cookieStr } });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.user || null;
+  } catch {
+    return null;
   }
-
-  const { cookies } = await import("next/headers");
-  const store = await cookies();
-  const { resolveNativeAuthUser, getNativeAuthUserFromCookies } = await import(
-    "@/lib/auth/native/session"
-  );
-
-  if (strict) {
-    return resolveNativeAuthUser(store.get(SESSION_COOKIE_NAME)?.value, {
-      strict: true,
-    });
-  }
-  return getNativeAuthUserFromCookies();
 }
 
 export async function requireAuthUser(request?: NextRequest): Promise<AuthUser> {

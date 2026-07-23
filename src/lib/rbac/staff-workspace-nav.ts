@@ -87,8 +87,6 @@ const NAV_CATALOG: Record<
   },
 };
 
-import { loadRolePermissions } from "@/lib/rbac/permissions";
-
 /** Nav items allowed for the given permission list (DB or fallback). */
 export function getStaffWorkspaceNavItemsFromPermissions(
   permissions: readonly string[],
@@ -127,14 +125,6 @@ export function getStaffWorkspaceNavItems(
           "settings.self",
         ];
   return getStaffWorkspaceNavItemsFromPermissions(fallback);
-}
-
-/** Server-side nav resolution using DB permissions. */
-export async function getStaffWorkspaceNavItemsForUser(
-  role: string | null | undefined,
-): Promise<NavItemConfig[]> {
-  const permissions = await loadRolePermissions(role);
-  return getStaffWorkspaceNavItemsFromPermissions(permissions);
 }
 
 export function getStaffWorkspaceBrand(

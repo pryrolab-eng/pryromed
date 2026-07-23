@@ -1,13 +1,8 @@
-import { prisma } from "@/lib/db/prisma";
-import { storeFindMembershipIdByUserAndPharmacy } from "@/lib/db/pharmacy-users-store";
+import { getMeContext } from "@/lib/http/me-context";
+import { getSaasBranches } from "@/lib/http/saas-branches";
 
 const UNRESTRICTED_ROLES = new Set(["pharmacy_owner", "admin"]);
 
-/**
- * Branch IDs the user may switch to for this pharmacy.
- * `null` = all active branches allowed.
- * `[]` = no branch access.
- */
 export async function getStaffAllowedBranchIds(
   userId: string,
   pharmacyId: string,
@@ -17,20 +12,13 @@ export async function getStaffAllowedBranchIds(
     return null;
   }
 
-  const membershipId = await storeFindMembershipIdByUserAndPharmacy(
-    userId,
-    pharmacyId,
-  );
-  if (!membershipId) return [];
-
-  const assignments = await prisma.staff_branch_assignments.findMany({
-    where: { pharmacy_user_id: membershipId },
-    select: { branch_id: true },
-  });
-
-  if (!assignments.length) return null;
-
-  return assignments.map((row) => row.branch_id);
+  try {
+    const ctx = await getMeContext();
+    if (ctx.activePharmacyId !== pharmacyId) return [];
+    return ctx.allowedBranchIds;
+  } catch {
+    return [];
+  }
 }
 
 export async function assertBranchAllowedForUser(
@@ -46,10 +34,6 @@ export async function assertBranchAllowedForUser(
   }
 }
 
-/**
- * Pick a branch the staff member may use.
- * Prefers `preferredBranchId` when allowed; otherwise HQ (if allowed), else oldest allowed.
- */
 export async function pickStaffScopedBranchId(
   pharmacyId: string,
   allowedBranchIds: string[] | null,
@@ -59,37 +43,32 @@ export async function pickStaffScopedBranchId(
     return null;
   }
 
-  const branches = await prisma.branches.findMany({
-    where: {
-      pharmacy_id: pharmacyId,
-      is_active: { not: false },
-      ...(allowedBranchIds !== null
-        ? { id: { in: allowedBranchIds } }
-        : {}),
-    },
-    orderBy: [{ is_headquarters: "desc" }, { created_at: "asc" }],
-    select: { id: true, is_headquarters: true },
-  });
+  try {
+    const { branches } = await getSaasBranches();
+    const active = branches.filter(
+      (b) =>
+        b.is_active !== false &&
+        (allowedBranchIds === null || allowedBranchIds.includes(b.id)),
+    );
+    active.sort(
+      (a, b) =>
+        (b.is_headquarters ? 1 : 0) - (a.is_headquarters ? 1 : 0) ||
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
 
-  if (branches.length === 0) return null;
+    if (active.length === 0) return null;
 
-  if (
-    preferredBranchId &&
-    branches.some((b) => b.id === preferredBranchId)
-  ) {
-    return preferredBranchId;
+    if (preferredBranchId && active.some((b) => b.id === preferredBranchId)) {
+      return preferredBranchId;
+    }
+
+    const hq = active.find((b) => b.is_headquarters);
+    return hq?.id ?? active[0]?.id ?? null;
+  } catch {
+    return null;
   }
-
-  const hq = branches.find((b) => b.is_headquarters);
-  return hq?.id ?? branches[0]?.id ?? null;
 }
 
-/**
- * Resolve which branch filter to apply for reads/writes.
- * - Requested id: must belong to pharmacy + be allowed
- * - Unset ("all"): unrestricted → null (whole pharmacy);
- *   restricted staff → pinned to their active/allowed branch (never other outlets)
- */
 export async function resolveDataBranchScope(
   userId: string,
   pharmacyId: string,
@@ -104,14 +83,13 @@ export async function resolveDataBranchScope(
   );
 
   if (requestedBranchId) {
-    const branch = await prisma.branches.findFirst({
-      where: {
-        id: requestedBranchId,
-        pharmacy_id: pharmacyId,
-        is_active: { not: false },
-      },
-      select: { id: true },
-    });
+    const { branches } = await getSaasBranches();
+    const branch = branches.find(
+      (b) =>
+        b.id === requestedBranchId &&
+        b.pharmacy_id === pharmacyId &&
+        b.is_active !== false,
+    );
     if (!branch) {
       throw new Error("Invalid branch for the active pharmacy");
     }
@@ -124,7 +102,6 @@ export async function resolveDataBranchScope(
     return { branchId: requestedBranchId, allowedBranchIds };
   }
 
-  // "All branches" — only for unrestricted users
   if (allowedBranchIds === null) {
     return { branchId: null, allowedBranchIds };
   }

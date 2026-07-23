@@ -1,5 +1,12 @@
-import type { SeedPharmacyDemoResult } from "@/lib/seed/seed-pharmacy-demo";
 import { resolveApiUrl } from "@/lib/http/migrated-api-prefixes";
+
+export type SeedPharmacyDemoResult = {
+  pharmacyId: string;
+  branchId: string;
+  inventory: { created: number; skipped: number };
+  customers: { created: number; skipped: number };
+  insuranceProvider: { created: boolean; id?: string; name: string };
+};
 
 export async function seedPharmacyDemoData(): Promise<SeedPharmacyDemoResult> {
   const res = await fetch(resolveApiUrl("/api/pharmacy/seed-demo-data").url, {

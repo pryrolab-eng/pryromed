@@ -47,5 +47,5 @@ export {
   getAdminFeatures,
   updateAdminFeature,
   type UpsertPlatformFeatureInput,
+  type PlatformFeatureRow,
 } from "./features";
-export type { PlatformFeatureRow } from "@/lib/subscription/plan-features";
