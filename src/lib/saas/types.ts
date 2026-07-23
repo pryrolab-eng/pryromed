@@ -35,6 +35,7 @@ export interface Subscription {
   is_active: boolean
   current_period_start: string | null
   current_period_end: string | null
+  expires_at: string | null
   cancelled_at: string | null
   trial_ends_at: string | null
   created_at: string

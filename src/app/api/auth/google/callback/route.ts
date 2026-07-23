@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       authUser = await prisma.auth_users.create({
         data: {
+          id: crypto.randomUUID(),
           email: profile.email,
           email_confirmed_at: now,
           raw_user_meta_data: {
@@ -62,7 +63,6 @@ export async function GET(request: NextRequest) {
           raw_app_meta_data: { provider: "google", providers: ["google"] } as never,
           created_at: now,
           updated_at: now,
-          token_identifier: profile.email,
         },
         select: { id: true, email: true },
       });
@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
           id: authUser.id,
           email: profile.email,
           full_name: profile.name,
+          token_identifier: profile.email,
           created_at: now,
           updated_at: now,
         },

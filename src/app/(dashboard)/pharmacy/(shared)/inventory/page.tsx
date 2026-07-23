@@ -789,7 +789,6 @@ export default function InventoryPage() {
         </body>
       </html>
     `)
-    printWindow.document.close()
   }
 
   const handleDeleteProduct = async () => {

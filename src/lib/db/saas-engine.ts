@@ -76,6 +76,7 @@ function mapSubscription(
     is_active: boolean | null;
     current_period_start: Date | null;
     current_period_end: Date | null;
+    expires_at: Date | null;
     cancelled_at: Date | null;
     trial_ends_at: Date | null;
     created_at: Date | null;
@@ -97,6 +98,7 @@ function mapSubscription(
     current_period_end: row.current_period_end
       ? iso(row.current_period_end)
       : null,
+    expires_at: row.expires_at ? iso(row.expires_at) : null,
     cancelled_at: row.cancelled_at ? iso(row.cancelled_at) : null,
     trial_ends_at: row.trial_ends_at ? iso(row.trial_ends_at) : null,
     created_at: iso(row.created_at),
