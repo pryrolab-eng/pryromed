@@ -22,9 +22,13 @@ async function api(path: string, options?: RequestInit) {
   // browser calls relative so the production rewrite can proxy them to Nest.
   const requestUrl = url.startsWith("/") && host ? `${protocol}://${host}${url}` : url;
   const cookieStore = await cookies();
-  const authCookie = cookieStore.get("pryrox_session")?.value || cookieStore.get("__Secure-pryrox_session")?.value;
+  const secureAuthCookie = cookieStore.get("__Secure-pryrox_session")?.value;
+  const authCookie = secureAuthCookie ?? cookieStore.get("pryrox_session")?.value;
   const headersObj: Record<string, string> = { "Content-Type": "application/json", ...(options?.headers as Record<string, string>) };
-  if (authCookie) headersObj["Cookie"] = `pryrox_session=${authCookie}`;
+  if (authCookie) {
+    const cookieName = secureAuthCookie ? "__Secure-pryrox_session" : "pryrox_session";
+    headersObj["Cookie"] = `${cookieName}=${authCookie}`;
+  }
   const res = await fetch(requestUrl, { ...options, headers: headersObj });
   const data = await res.json().catch(() => ({}));
   return { ok: res.ok, data, status: res.status, res };

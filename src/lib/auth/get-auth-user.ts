@@ -10,13 +10,19 @@ export async function getAuthUser(request?: NextRequest): Promise<AuthUser | nul
     let origin = request?.nextUrl.origin;
 
     if (request) {
-      const cookie = request.cookies.get("pryrox_session")?.value || request.cookies.get("__Secure-pryrox_session")?.value;
-      if (cookie) cookieStr = `pryrox_session=${cookie}`;
+      const secureCookie = request.cookies.get("__Secure-pryrox_session")?.value;
+      const cookie = secureCookie ?? request.cookies.get("pryrox_session")?.value;
+      if (cookie) {
+        cookieStr = `${secureCookie ? "__Secure-pryrox_session" : "pryrox_session"}=${cookie}`;
+      }
     } else {
       const { cookies: serverCookies, headers: serverHeaders } = await import("next/headers");
       const store = await serverCookies();
-      const cookie = store.get("pryrox_session")?.value || store.get("__Secure-pryrox_session")?.value;
-      if (cookie) cookieStr = `pryrox_session=${cookie}`;
+      const secureCookie = store.get("__Secure-pryrox_session")?.value;
+      const cookie = secureCookie ?? store.get("pryrox_session")?.value;
+      if (cookie) {
+        cookieStr = `${secureCookie ? "__Secure-pryrox_session" : "pryrox_session"}=${cookie}`;
+      }
 
       const headers = await serverHeaders();
       const host = headers.get("x-forwarded-host") ?? headers.get("host");
