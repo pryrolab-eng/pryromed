@@ -27,7 +27,15 @@ export async function getAuthUser(request?: NextRequest): Promise<AuthUser | nul
     if (!cookieStr) return null;
 
     const { url } = resolveApiUrl("/api/auth/me");
-    const requestUrl = url.startsWith("/") && origin ? new URL(url, origin) : url;
+    // Server-rendered pages should contact Nest directly. A request back into
+    // this Vercel deployment can miss its rewrite and send the user through
+    // the sign-in middleware again, creating an /app redirect loop.
+    const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+    const requestUrl = apiBase && url.startsWith("/")
+      ? `${apiBase}${url}`
+      : url.startsWith("/") && origin
+        ? new URL(url, origin)
+        : url;
     const res = await fetch(requestUrl, { headers: { Cookie: cookieStr } });
 
     if (!res.ok) return null;
