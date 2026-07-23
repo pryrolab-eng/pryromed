@@ -75,8 +75,9 @@ export function AppEntryGate() {
       if (navigatedRef.current) return;
       navigatedRef.current = true;
       setPhase("redirecting");
-      router.prefetch(path);
-      router.replace(path);
+      // `/app` is only an entry gate. Use a document navigation for the final
+      // handoff so Next does not keep the entry route in its client cache.
+      window.location.replace(path);
     },
     [router],
   );
