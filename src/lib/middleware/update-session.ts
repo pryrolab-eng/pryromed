@@ -186,9 +186,16 @@ export const updateSession = async (request: NextRequest) => {
     if (isProtectedPath(pathname)) {
       const nativeUserId = await getNativeUserIdFromRequest(request);
       if (!nativeUserId) {
-        const redirect = NextResponse.redirect(new URL("/sign-in", request.url));
-        clearLegacySupabaseAuthCookies(request, redirect);
-        return redirect;
+        if (!hasAuthCookies(request)) {
+          const redirect = NextResponse.redirect(new URL("/sign-in", request.url));
+          clearLegacySupabaseAuthCookies(request, redirect);
+          return redirect;
+        }
+
+        // Nest owns session signing and verification. Do not reject a session
+        // here merely because this Vercel deployment lacks (or has a rotated)
+        // AUTH_SECRET; the server-rendered auth lookup verifies it with Nest.
+        return response;
       }
 
       const ipDenied = await enforceIpWhitelistOrDeny(request, nativeUserId, "page");
