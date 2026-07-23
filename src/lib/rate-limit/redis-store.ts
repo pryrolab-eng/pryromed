@@ -1,17 +1,8 @@
 import type { ConsumeRateLimitInput, ConsumeRateLimitResult } from "./buckets";
 
-/**
- * Keep the cache interface structural.  `createClient` can be resolved from a
- * different copy of `@redis/client` in production builds, making its branded
- * `RedisClientType` incompatible with an imported alias despite identical
- * runtime behaviour.
- */
-type RedisClient = {
-  readonly isOpen: boolean;
-  incr(key: string): Promise<number>;
-  pExpire(key: string, milliseconds: number): Promise<number>;
-  pTTL(key: string): Promise<number>;
-};
+// Use a loose type to avoid redis version incompatibilities
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisClient = any;
 
 let client: RedisClient | null = null;
 let connectPromise: Promise<RedisClient | null> | null = null;
@@ -35,7 +26,7 @@ async function getRedisClient(): Promise<RedisClient | null> {
       try {
         const { createClient } = await import("redis");
         const next = createClient({ url });
-        next.on("error", (error) => {
+        next.on("error", (error: unknown) => {
           console.error("rate-limit redis:", error);
         });
         await next.connect();
