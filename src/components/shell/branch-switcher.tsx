@@ -100,7 +100,7 @@ export function BranchSwitcher({
           {isHeadquartersBranch(activeBranch) ? " · HQ" : ""}
         </span>
         {(isAccessBlocked || allowedBranchIds !== null) && (
-          <Lock className="h-3 w-3 shrink-0 text-neutral-400" aria-hidden />
+          <Lock className="h-3 w-3 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
         )}
       </div>
     );

@@ -3,6 +3,7 @@
 import {
   Activity,
   ArrowDown,
+  RotateCw,
   ArrowUpRight,
   Check,
   Crown,
@@ -13,12 +14,18 @@ import { DashboardButton } from "@/components/dashboard";
 import { PlanFeatureList } from "@/components/subscription/plan-feature-list";
 import { cn } from "@/lib/utils";
 
-export type PlanCardAction = "current" | "upgrade" | "downgrade" | "subscribe";
+export type PlanCardAction =
+  | "current"
+  | "upgrade"
+  | "downgrade"
+  | "subscribe"
+  | "renew";
 
 export type CatalogPlan = {
   id: string;
   name: string;
   price: number;
+  currency?: string;
   features: string[];
   current: boolean;
   plan_type: "main" | "branch_addon";
@@ -44,20 +51,26 @@ export function PlanCard({
   const isUpgrade = action === "upgrade";
   const isDowngrade = action === "downgrade";
   const isSubscribe = action === "subscribe";
+  const isRenew = action === "renew";
   const isRecommended =
-    (isUpgrade || isSubscribe) && plan.name.toLowerCase() === "standard";
+    (isUpgrade || isSubscribe || isRenew) &&
+    plan.name.toLowerCase() === "standard";
 
   return (
     <article
       className={cn(
         "relative flex h-full w-full flex-col rounded-xl border bg-card text-left shadow-sm transition-shadow hover:shadow-md",
-        isCurrent && "border-primary/40 ring-1 ring-primary/20",
+        (isCurrent || isRenew) && "border-primary/40 ring-1 ring-primary/20",
         isRecommended && "border-primary/30 shadow-md",
         !isCurrent && !isRecommended && "border-border/80",
       )}
     >
       <div className="flex min-h-[1.75rem] items-center justify-center px-3 pt-4">
-        {isCurrent ? (
+        {isRenew ? (
+          <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            Current plan
+          </span>
+        ) : isCurrent ? (
           <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
             Current plan
           </span>
@@ -87,7 +100,7 @@ export function PlanCard({
           <p className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
             {plan.price.toLocaleString()}
             <span className="ml-1 text-sm font-medium text-muted-foreground">
-              RWF
+              {plan.currency ?? "RWF"}
             </span>
           </p>
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -142,7 +155,17 @@ export function PlanCard({
         </div>
 
         <div className="mt-auto pt-1">
-          {isCurrent ? (
+          {isRenew ? (
+            <DashboardButton
+              type="button"
+              tone="primary"
+              className="w-full bg-amber-700 text-white hover:bg-amber-800 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
+              onClick={onSelect}
+            >
+              <RotateCw className="mr-1.5 size-4" />
+              Renew current plan
+            </DashboardButton>
+          ) : isCurrent ? (
             <DashboardButton
               type="button"
               tone="outline"

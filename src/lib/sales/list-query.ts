@@ -6,6 +6,7 @@ export type SalesListQuery = {
   from?: string;
   to?: string;
   limit: number;
+  page: number;
 };
 
 const PAYMENT_METHODS = [
@@ -33,8 +34,10 @@ export function parseSalesListQuery(searchParams: URLSearchParams): SalesListQue
   const limit = Number.isFinite(limitRaw)
     ? Math.min(Math.max(Math.floor(limitRaw), 1), 200)
     : 100;
+  const pageRaw = Number(searchParams.get("page") ?? "1");
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1;
 
-  return { period, q, from, to, limit };
+  return { period, q, from, to, limit, page };
 }
 
 export function salesListDateRange(query: SalesListQuery): {
@@ -73,6 +76,7 @@ export function buildSalesListQueryString(input: {
   from?: string;
   to?: string;
   limit?: number;
+  page?: number;
 }): string {
   const params = new URLSearchParams();
   if (input.period && input.period !== "all") {
@@ -84,6 +88,7 @@ export function buildSalesListQueryString(input: {
   if (input.from) params.set("from", input.from);
   if (input.to) params.set("to", input.to);
   if (input.limit) params.set("limit", String(input.limit));
+  if (input.page) params.set("page", String(input.page));
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }

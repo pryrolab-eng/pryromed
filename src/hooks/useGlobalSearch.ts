@@ -107,7 +107,7 @@ export function usePharmacyGlobalSearch(
     return filterPharmacyGlobalSearch({
       query: debouncedQuery,
       customers: customersQuery.data,
-      inventory: inventoryQuery.data,
+      inventory: inventoryQuery.data?.rows ?? [],
       prescriptions: prescriptionsQuery.data,
       sales: salesQuery.data?.sales,
       staff: staffQuery.data,

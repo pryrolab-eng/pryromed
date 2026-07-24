@@ -7,7 +7,10 @@ import { useActivePharmacy } from "@/components/providers/active-pharmacy-provid
 import { hasPermission } from "@/lib/rbac/permissions";
 import { resolveRoutePermission } from "@/lib/rbac/route-permissions";
 import { PHARMACY_ROUTES } from "@/lib/routes/pharmacy-paths";
-import { isStaffWorkspaceRole } from "@/lib/rbac/pharmacy-roles";
+import {
+  isPharmacyOwnerRole,
+  isStaffWorkspaceRole,
+} from "@/lib/rbac/pharmacy-roles";
 
 type Props = {
   children: React.ReactNode;
@@ -29,8 +32,9 @@ export function StaffRoleRouteGuard({ children }: Props) {
 
   const allowed = useMemo(() => {
     if (!requiredPermission) return true;
+    if (isPharmacyOwnerRole(context.role)) return true;
     return hasPermission(context.permissions, requiredPermission);
-  }, [requiredPermission, context.permissions]);
+  }, [requiredPermission, context.permissions, context.role]);
 
   if (!hasSnapshot && isHydrating) {
     return null;

@@ -110,7 +110,7 @@ export const INVENTORY_SAMPLE_ROWS: InventoryImportPreviewRow[] = [
     Stock: 100,
     "Min Stock": 20,
     "Price (RWF)": 500,
-    "Expiry Date": "2025-12-31",
+    "Expiry Date": "2030-12-31",
     "Batch Number": "PAR001",
   },
   {

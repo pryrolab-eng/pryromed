@@ -85,6 +85,7 @@ export type ThreadComponents = {
 export type ThreadProps = {
   components?: ThreadComponents | undefined;
   suggestions?: string[] | undefined;
+  description?: string | undefined;
   compact?: boolean | undefined;
 };
 
@@ -94,6 +95,7 @@ const ThreadComponentsContext =
   createContext<ThreadComponents>(EMPTY_COMPONENTS);
 
 const ThreadSuggestionsContext = createContext<string[] | undefined>(undefined);
+const ThreadDescriptionContext = createContext<string | undefined>(undefined);
 const ThreadDensityContext = createContext<boolean>(false);
 
 // Startup exposes a loading placeholder thread; treat it as a new chat so
@@ -102,15 +104,17 @@ const isNewChatView = (s: AssistantState) =>
   s.thread.messages.length === 0 &&
   (!s.thread.isLoading || s.threads.isLoading);
 
-export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS, suggestions, compact }) => {
+export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS, suggestions, description, compact }) => {
   const isEmpty = useAuiState(isNewChatView);
 
   return (
     <ThreadComponentsContext.Provider value={components}>
       <ThreadSuggestionsContext.Provider value={suggestions}>
-        <ThreadDensityContext.Provider value={compact ?? false}>
-          <ThreadRoot isEmpty={isEmpty} />
-        </ThreadDensityContext.Provider>
+        <ThreadDescriptionContext.Provider value={description}>
+          <ThreadDensityContext.Provider value={compact ?? false}>
+            <ThreadRoot isEmpty={isEmpty} />
+          </ThreadDensityContext.Provider>
+        </ThreadDescriptionContext.Provider>
       </ThreadSuggestionsContext.Provider>
     </ThreadComponentsContext.Provider>
   );
@@ -202,6 +206,7 @@ const ThreadScrollToBottom: FC = () => {
 
 const ThreadWelcome: FC = () => {
   const compact = useContext(ThreadDensityContext);
+  const description = useContext(ThreadDescriptionContext);
 
   return (
     <div className={cn(
@@ -229,7 +234,7 @@ const ThreadWelcome: FC = () => {
         "max-w-md text-center text-gray-500 dark:text-zinc-400",
         compact ? "mb-2 text-xs" : "mb-4 text-sm",
       )}>
-        Ask me anything about your pharmacy operations.
+        {description ?? "Ask me anything about your pharmacy operations."}
       </p>
     </div>
   );

@@ -58,7 +58,7 @@ export function DashboardSidebarBrand({
             asChild
             tooltip={title}
             className={cn(
-              "h-10 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800/60",
+              "h-9 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800/60",
               "group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-0",
             )}
           >

@@ -32,13 +32,28 @@ export {
   type CreateCustomerInput,
   type CustomerRow,
   type CustomerSearchRow,
+  type PaginatedCustomersList,
   type UpdateCustomerInput,
 } from "@/lib/http/customers";
 
-export function useCustomers(options?: { enabled?: boolean }) {
+export function useCustomers(options?: { enabled?: boolean; page?: number; limit?: number }) {
+  const { page = 1, limit = 50 } = options ?? {};
   return useQuery({
-    queryKey: customersKeys.list(),
-    queryFn: getCustomers,
+    queryKey: customersKeys.list(page, limit),
+    queryFn: async () => {
+      const res = await getCustomers(page, limit);
+      return res.rows;
+    },
+    enabled: options?.enabled ?? true,
+    staleTime: SEARCH_LIST_STALE_MS,
+  });
+}
+
+export function usePaginatedCustomers(options?: { enabled?: boolean; page?: number; limit?: number }) {
+  const { page = 1, limit = 50 } = options ?? {};
+  return useQuery({
+    queryKey: customersKeys.list(page, limit),
+    queryFn: () => getCustomers(page, limit),
     enabled: options?.enabled ?? true,
     staleTime: SEARCH_LIST_STALE_MS,
   });

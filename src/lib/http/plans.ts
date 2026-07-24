@@ -9,6 +9,9 @@ export type PlanRow = {
   id: string;
   name: string;
   price: number;
+  currency?: string;
+  yearly_price?: number | null;
+  yearly_discount_pct?: number;
   period?: string;
   features?: string[] | null;
   is_popular?: boolean | null;

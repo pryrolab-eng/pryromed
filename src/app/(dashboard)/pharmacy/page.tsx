@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/auth/get-auth-user";
-import { resolveActivePharmacyContext } from "@/lib/pharmacy/active-pharmacy";
+import { resolveActivePharmacyContextServer } from "@/lib/pharmacy/active-pharmacy";
 import { selectPrimaryMembership } from "@/utils/select-pharmacy-membership";
 import { PHARMACY_ROUTES } from "@/lib/routes/pharmacy-paths";
 import { isStaffWorkspaceRole } from "@/lib/rbac/pharmacy-roles";
@@ -13,7 +13,7 @@ export default async function PharmacyRootPage() {
     redirect("/sign-in");
   }
 
-  const ctx = await resolveActivePharmacyContext(user.id);
+  const ctx = await resolveActivePharmacyContextServer(user.id);
   const membership = selectPrimaryMembership(ctx.memberships);
   const role = membership?.role;
 

@@ -15,6 +15,8 @@ export type SubscriptionPlanRow = {
   id: string
   name: string
   price: number
+  yearly_price?: number | null
+  yearly_discount_pct?: number
   period: string
   features: string[]
   is_popular: boolean
@@ -23,6 +25,7 @@ export type SubscriptionPlanRow = {
   max_branches?: number
   monthly_tx_limit?: number
   billing_period?: string
+  currency?: string
 }
 
 function toDisplayPlan(plan: PlanRow): SubscriptionPlanRow {
@@ -30,6 +33,8 @@ function toDisplayPlan(plan: PlanRow): SubscriptionPlanRow {
     id: plan.id,
     name: plan.name,
     price: plan.price,
+    yearly_price: plan.yearly_price,
+    yearly_discount_pct: plan.yearly_discount_pct,
     period: plan.period ?? 'per month',
     features: (plan.features ?? []).filter(
       (f): f is string => typeof f === 'string' && f.trim().length > 0,
@@ -40,6 +45,7 @@ function toDisplayPlan(plan: PlanRow): SubscriptionPlanRow {
     max_branches: plan.max_branches,
     monthly_tx_limit: plan.monthly_tx_limit,
     billing_period: plan.billing_period as string | undefined,
+    currency: plan.currency,
   }
 }
 
@@ -61,16 +67,23 @@ export default function PolarPricing() {
         )
     }
 
-    /** Monthly list price; annual toggle shows 20% off that monthly rate. */
-    const getDisplayPrice = (monthly: number) => {
-        if (monthly === 0) return 0
-        return billing === 'annually' ? Math.round(monthly * 0.8) : monthly
+    /** Monthly list price; annual toggle shows plan.yearly_price or discounted rate. */
+    const getDisplayPrice = (plan: SubscriptionPlanRow) => {
+        if (plan.price === 0) return 0
+        if (billing === 'annually') {
+            if (plan.yearly_price) return Math.round(plan.yearly_price / 12)
+            const discount = (plan.yearly_discount_pct ?? 17) / 100
+            return Math.round(plan.price * (1 - discount))
+        }
+        return plan.price
     }
 
-    /** What the customer pays once per year at checkout (monthly × 12 × 0.8). */
-    const getAnnualTotal = (monthly: number) => {
-        if (monthly === 0) return 0
-        return Math.round(monthly * 12 * 0.8)
+    /** What the customer pays once per year at checkout. */
+    const getAnnualTotal = (plan: SubscriptionPlanRow) => {
+        if (plan.price === 0) return 0
+        if (plan.yearly_price) return plan.yearly_price
+        const discount = (plan.yearly_discount_pct ?? 17) / 100
+        return Math.round(plan.price * 12 * (1 - discount))
     }
 
     return (
@@ -88,7 +101,9 @@ export default function PolarPricing() {
                         className={`rounded-lg px-8 py-2 text-sm font-medium transition-all flex items-center gap-2 ${billing === 'annually' ? 'bg-primary text-primary-foreground' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'}`}
                     >
                         Annually
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${billing === 'annually' ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'}`}>-20%</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${billing === 'annually' ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'}`}>
+                            {(plans[0]?.yearly_discount_pct ?? 17)}% off
+                        </span>
                     </button>
                 </div>
             </div>
@@ -96,8 +111,8 @@ export default function PolarPricing() {
             <div className="relative">
                 <div className="mx-auto grid max-w-5xl grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 2xl:max-w-6xl 2xl:gap-8">
                     {plans.map((plan) => {
-                        const displayPrice = getDisplayPrice(plan.price)
-                        const annualTotal = getAnnualTotal(plan.price)
+                        const displayPrice = getDisplayPrice(plan)
+                        const annualTotal = getAnnualTotal(plan)
                         const priceSuffix = formatPlanPriceSuffix({
                           price: displayPrice,
                           period: plan.period,
@@ -128,25 +143,25 @@ export default function PolarPricing() {
                                         <span className="text-4xl font-serif tracking-tight text-gray-900 dark:text-white">
                                             {displayPrice.toLocaleString()}
                                         </span>
-                                        <span className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">RWF</span>
+                                        <span className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">{plan.currency}</span>
                                     </>
                                 )}
                                 {priceSuffix ? (
                                   <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-full">
                                     {priceSuffix}
-                                    {billing === "annually" && plan.price > 0 ? (
+                                    {plan.price > 0 ? (
                                       <AnimatedTextRoller
                                         className="mt-1.5 w-full"
                                         lineClassName="h-5 flex items-center text-xs font-medium"
                                         intervalMs={2800}
                                         lines={[
                                           {
-                                            text: "20% off",
+                                            text: billing === "annually" ? `${plan.yearly_discount_pct ?? 17}% off` : `${plan.yearly_discount_pct ?? 17}% off with annual`,
                                             className:
                                               "text-emerald-700 dark:text-emerald-400",
                                           },
                                           {
-                                            text: `${annualTotal.toLocaleString()} RWF billed yearly`,
+                                            text: billing === "annually" ? `${annualTotal.toLocaleString()} ${plan.currency} billed yearly` : `${(plan.yearly_price ?? Math.round(plan.price * 12 * (1 - (plan.yearly_discount_pct ?? 17) / 100))).toLocaleString()} ${plan.currency} yearly`,
                                             className:
                                               "text-gray-600 dark:text-gray-400",
                                           },

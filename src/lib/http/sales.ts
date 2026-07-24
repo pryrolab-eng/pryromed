@@ -10,6 +10,7 @@ export type SalesListParams = {
   from?: string;
   to?: string;
   limit?: number;
+  page?: number;
 };
 
 export const salesKeys = {
@@ -49,6 +50,9 @@ export type SalesListResponse = {
     monthTotal: number;
     totalSales: number;
   };
+  total?: number;
+  page?: number;
+  limit?: number;
 };
 
 export type SalesAnalytics = {

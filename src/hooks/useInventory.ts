@@ -39,18 +39,18 @@ export {
   type UpdateInventoryProductInput,
 } from "@/lib/http/inventory";
 
-function invalidateInventory(queryClient: ReturnType<typeof useQueryClient>, branchId?: string | null) {
+function invalidateInventory(queryClient: ReturnType<typeof useQueryClient>, _branchId?: string | null) {
   return Promise.all([
-    queryClient.invalidateQueries({ queryKey: inventoryKeys.list(branchId) }),
-    queryClient.invalidateQueries({ queryKey: inventoryKeys.analytics(branchId) }),
+    queryClient.invalidateQueries({ queryKey: inventoryKeys.all }),
+    queryClient.invalidateQueries({ queryKey: inventoryKeys.analytics(_branchId) }),
   ]);
 }
 
-export function useInventoryList(options?: { enabled?: boolean; branchId?: string | null }) {
-  const branchId = options?.branchId;
+export function useInventoryList(options?: { enabled?: boolean; branchId?: string | null; page?: number; limit?: number }) {
+  const { branchId, page = 1, limit = 50 } = options ?? {};
   return useQuery({
-    queryKey: inventoryKeys.list(branchId),
-    queryFn: () => getInventoryList(branchId),
+    queryKey: inventoryKeys.list(branchId, page, limit),
+    queryFn: () => getInventoryList(branchId, page, limit),
     enabled: options?.enabled ?? true,
     staleTime: SEARCH_LIST_STALE_MS,
   });

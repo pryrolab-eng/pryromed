@@ -66,6 +66,7 @@ type PlanRow = {
   period: string;
   features: string[] | null;
   is_popular?: boolean | null;
+  currency?: string;
 };
 
 type PharmacySnapshot = {
@@ -743,7 +744,7 @@ export default function OnboardingForm() {
                     <p className="mt-2 text-3xl font-bold text-neutral-900">
                       {price.toLocaleString()}
                       <span className="ml-1 text-sm font-normal text-neutral-500">
-                        RWF
+                        {plan.currency ?? "RWF"}
                       </span>
                     </p>
                     <p className="mt-1 text-xs text-neutral-500">
@@ -797,7 +798,7 @@ export default function OnboardingForm() {
           <div className="mt-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm">
             <p className="font-medium text-neutral-900">{selectedPlan.name}</p>
             <p className="text-neutral-500">
-              {Number(selectedPlan.price).toLocaleString()} RWF —{" "}
+              {Number(selectedPlan.price).toLocaleString()} {selectedPlan.currency ?? "RWF"} —{" "}
               {selectedPlan.period}
             </p>
           </div>

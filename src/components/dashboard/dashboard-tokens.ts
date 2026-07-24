@@ -3,7 +3,7 @@
 export const dashboardSurfaces = {
   page: "flex min-h-full min-w-0 flex-1 flex-col bg-neutral-50/80 dark:bg-neutral-950/40",
   pageInner:
-    "mx-auto w-full min-w-0 max-w-[1400px] space-y-4 p-4 sm:space-y-6 sm:p-6 md:p-8",
+    "mx-auto w-full min-w-0 w-full space-y-4 p-4 sm:space-y-6 sm:p-6 md:p-8",
   card: "rounded-xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900/60",
   sectionHeader:
     "flex flex-col gap-3 border-b border-neutral-100 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4 dark:border-neutral-800",

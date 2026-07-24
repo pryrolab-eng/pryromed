@@ -30,11 +30,26 @@ export type PlanLimitsResponse = {
   limits?: { maxBranches?: number | null; maxUsers?: number | null };
 };
 
-export async function upgradeSubscription(planId: string): Promise<{
+export type SubscriptionUpgradeResponse = {
   success?: boolean;
   error?: string;
-  subscription?: unknown;
-}> {
+  subscription?: {
+    id: string;
+    planId: string;
+    planName: string;
+    amount: number;
+    requiresPayment: boolean;
+    isActive: boolean;
+    expiresAt: string | null;
+    status: string;
+  };
+};
+
+/**
+ * Upgrade to a different plan (or first-time subscribe).
+ * Deactivates existing active subscriptions and creates a new one.
+ */
+export async function upgradeSubscription(planId: string): Promise<SubscriptionUpgradeResponse> {
   return fetchJson("/api/subscriptions/upgrade", {
     method: "POST",
     credentials: "include",
@@ -43,15 +58,12 @@ export async function upgradeSubscription(planId: string): Promise<{
   });
 }
 
+/**
+ * Create a pending subscription record (for paid plans, before Polar checkout).
+ * Used by the upgrade/renew payment flow.
+ */
 export async function createPendingSubscription(planId: string) {
-  const data = await fetchJson<{
-    subscription: {
-      id: string;
-      planName?: string;
-      requiresPayment?: boolean;
-    };
-    error?: string;
-  }>("/api/subscriptions/upgrade", {
+  const data = await fetchJson<SubscriptionUpgradeResponse>("/api/subscriptions/upgrade", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -61,6 +73,39 @@ export async function createPendingSubscription(planId: string) {
     throw new Error(data.error || "Could not create subscription.");
   }
   return data.subscription;
+}
+
+/**
+ * Renew the current plan — extends billing period without changing tier.
+ * Returns the same shape as createPendingSubscription for uniform checkout flow.
+ */
+export async function renewSubscription(planId: string) {
+  const data = await fetchJson<SubscriptionUpgradeResponse>("/api/subscriptions/renew", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ planId }),
+  });
+  if (!data.subscription) {
+    throw new Error(data.error || "Could not create renewal subscription.");
+  }
+  return data.subscription;
+}
+
+/**
+ * Cancel subscription auto-renewal. Active until expires_at.
+ */
+export async function cancelSubscription() {
+  return fetchJson<{
+    success: boolean;
+    cancelled: boolean;
+    activeUntil: string | null;
+    subscriptionId: string;
+  }>("/api/subscriptions/cancel", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 export async function getSubscriptionStatus(): Promise<SubscriptionStatusResponse> {

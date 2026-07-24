@@ -77,6 +77,7 @@ function useSettingsPageState() {
     email: true,
     desktop: true,
     push: false,
+    subscriptionRenewalDays: [14, 7, 3, 1],
   });
 
   const settingsQuery = usePharmacySettingsInfo();

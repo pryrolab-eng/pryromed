@@ -5,9 +5,9 @@ import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   useCombinedPharmacyDashboard,
-  useCreatePharmacistMutation,
   type PharmacyDashboardStats,
-} from '@/hooks'
+} from '@/hooks/usePharmacyDashboard'
+import { useCreatePharmacistMutation } from '@/hooks/useCreatePharmacist'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"

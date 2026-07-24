@@ -20,6 +20,8 @@ import { canAccessBillingWhenBlocked } from "@/lib/subscription/access-block";
 import { BILLING_ROUTE } from "@/lib/subscription/subscription-grace-routes";
 
 const BILLING_HREF = BILLING_ROUTE;
+const LOCKED_ACCESS_ICON_CLASS =
+  "text-amber-700 dark:text-amber-400";
 
 type Props = {
   item: NavItemConfig;
@@ -94,7 +96,8 @@ export function NavEntitlementItem({
             <span>{item.title}</span>
             <Lock
               className={cn(
-                "ml-auto size-3 shrink-0 text-neutral-400",
+                "ml-auto size-3 shrink-0",
+                LOCKED_ACCESS_ICON_CLASS,
                 dashboardSidebarTokens.collapsedHidden,
               )}
             />
@@ -105,7 +108,8 @@ export function NavEntitlementItem({
             <span>{item.title}</span>
             <Lock
               className={cn(
-                "ml-auto size-3 shrink-0 text-neutral-400",
+                "ml-auto size-3 shrink-0",
+                LOCKED_ACCESS_ICON_CLASS,
                 dashboardSidebarTokens.collapsedHidden,
               )}
             />
@@ -133,7 +137,8 @@ export function NavEntitlementItem({
           <span className="opacity-80">{item.title}</span>
           <Lock
             className={cn(
-              "ml-auto size-3 shrink-0 text-neutral-400",
+              "ml-auto size-3 shrink-0",
+              LOCKED_ACCESS_ICON_CLASS,
               dashboardSidebarTokens.collapsedHidden,
             )}
           />

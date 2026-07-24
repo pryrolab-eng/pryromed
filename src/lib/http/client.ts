@@ -35,9 +35,10 @@ async function tryRefreshSession(): Promise<boolean> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     try {
-      const res = await fetch("/api/auth/refresh", {
+      const { url, isNest } = resolveApiUrl("/api/auth/refresh");
+      const res = await fetch(url, {
         method: "POST",
-        credentials: "include",
+        credentials: isNest ? "include" : "same-origin",
         cache: "no-store",
       });
       return res.ok;

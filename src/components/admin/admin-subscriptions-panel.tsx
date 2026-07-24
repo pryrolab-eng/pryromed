@@ -48,7 +48,7 @@ import { Tabs, TabsTrigger } from '@/components/ui/tabs'
 import { Spinner } from '@/components/ui/spinner';
 import { AnimatePresence, motion } from "motion/react";
 import { formatMoney } from "@/lib/platform-currency";
-import { useAdminPlans } from '@/hooks'
+import { useAdminPlans } from '@/hooks/useAdminPlans'
 import { createAdminPlan, updateAdminPlan, type AdminSubscriptionPlanRow } from '@/lib/http/admin/plans'
 import { invalidateAllPlanCaches } from '@/lib/query/invalidate-plan-caches'
 import { PlanFeatureMatrix } from '@/components/admin/plan-feature-matrix'

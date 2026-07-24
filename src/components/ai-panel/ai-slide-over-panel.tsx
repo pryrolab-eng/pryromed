@@ -11,6 +11,7 @@ import { useIsMobile } from "@/components/hooks/use-mobile";
 import { AiRuntimeProvider } from "@/components/assistant-ui/pharmacy-runtime-provider";
 import { UpgradePlanDialog } from "@/components/subscription/upgrade-plan-dialog";
 import { usePharmacyEntitlements } from "@/hooks/usePharmacyEntitlements";
+import { getDynamicPageContextForRoute } from "@/lib/ai/page-context";
 import { cn } from "@/lib/utils";
 
 const AI_PAGE_PATHS = ["/pharmacy/ai", "/admin/ai"];
@@ -128,7 +129,7 @@ export function AiSlideOverPanel() {
           scope={scope}
           threadId={threadId}
           onThreadCreated={handleThreadCreated}
-          pageContext={activePageContext ?? undefined}
+          pageContext={activePageContext ?? getDynamicPageContextForRoute(pathname).pageContext}
         >
           <motion.div layoutId="ai-thread" className="h-full">
             <AiPanelThreadWrapper />

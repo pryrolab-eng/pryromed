@@ -6,6 +6,8 @@ import {
   CheckIcon,
   ChevronDownIcon,
   LoaderIcon,
+  MailIcon,
+  SendIcon,
   XCircleIcon,
 } from "lucide-react";
 import {
@@ -26,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { A2UIQuestion, type A2UIQuestionData } from "@/components/assistant-ui/a2ui-question";
+import { resolveApiUrl } from "@/lib/http/migrated-api-prefixes";
 
 const ANIMATION_DURATION = 200;
 
@@ -527,6 +530,121 @@ function ToolFallbackApproval({
   );
 }
 
+// ─── Draft Email Preview with Send button ────────────────────────────────
+
+type DraftEmailData = {
+  status: string;
+  smtpConfigured: boolean;
+  to: string;
+  subject: string;
+  html: string;
+  text: string | null;
+  message: string;
+};
+
+function DraftEmailPreview({ data, disabled }: { data: DraftEmailData; disabled?: boolean }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSend = async () => {
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch(resolveApiUrl("/api/ai/send-email").url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ to: data.to, subject: data.subject, html: data.html, text: data.text }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error ?? "Failed to send email");
+      } else {
+        setSent(true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="my-2 overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+      {/* Header */}
+      <div className="flex items-center gap-2 border-b border-border/40 bg-muted/30 px-4 py-2.5">
+        <MailIcon className="size-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">Email Draft</span>
+        {sent && (
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <CheckIcon className="size-3" /> Sent
+          </span>
+        )}
+      </div>
+
+      {/* Email metadata */}
+      <div className="space-y-1 px-4 py-3 text-sm">
+        <div className="flex gap-2">
+          <span className="w-16 shrink-0 font-medium text-muted-foreground">To:</span>
+          <span className="text-foreground">{data.to}</span>
+        </div>
+        <div className="flex gap-2">
+          <span className="w-16 shrink-0 font-medium text-muted-foreground">Subject:</span>
+          <span className="font-medium text-foreground">{data.subject}</span>
+        </div>
+      </div>
+
+      {/* HTML preview */}
+      <div className="border-t border-border/40 px-4 py-3">
+        <div
+          className="prose prose-sm dark:prose-invert max-h-64 max-w-none overflow-y-auto rounded-lg border border-border/30 bg-background p-3"
+          dangerouslySetInnerHTML={{ __html: data.html }}
+        />
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 border-t border-border/40 px-4 py-3">
+        {!data.smtpConfigured && (
+          <p className="mr-auto text-xs text-amber-600 dark:text-amber-400">
+            ⚠️ SMTP not configured
+          </p>
+        )}
+        {error && (
+          <p className="mr-auto text-xs text-destructive">{error}</p>
+        )}
+        {!sent ? (
+          <Button
+            size="sm"
+            onClick={handleSend}
+            disabled={disabled || sending || !data.smtpConfigured}
+            className="ml-auto gap-1.5 rounded-full"
+          >
+            {sending ? (
+              <>
+                <LoaderIcon className="size-3.5 animate-spin" />
+                Sending…
+              </>
+            ) : (
+              <>
+                <SendIcon className="size-3.5" />
+                Send Email
+              </>
+            )}
+          </Button>
+        ) : (
+          <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+            <CheckIcon className="size-4" />
+            Email sent to {data.to}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main ToolFallback Component ─────────────────────────────────────────
+
 const ToolFallbackImpl: ToolCallMessagePartComponent = ({
   toolName,
   argsText,
@@ -581,6 +699,20 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
         disabled={isCancelled}
       />
     );
+  }
+
+  // Detect draft_email tool results — render email preview with Send button
+  const isDraftEmail =
+    toolName === "draft_email" &&
+    result &&
+    typeof result === "object" &&
+    (result as Record<string, unknown>).data &&
+    typeof (result as Record<string, unknown>).data === "object" &&
+    ((result as Record<string, unknown>).data as Record<string, unknown>).status === "awaiting_confirmation";
+
+  if (isDraftEmail) {
+    const draftData = (result as { data: DraftEmailData }).data;
+    return <DraftEmailPreview data={draftData} disabled={isCancelled} />;
   }
 
   return (

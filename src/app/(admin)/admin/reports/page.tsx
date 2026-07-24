@@ -32,9 +32,9 @@ import { Spinner } from '@/components/ui/spinner'
 import {
   adminReportsSummaryQueryKey,
   useAdminReportsSummary,
-  usePlatformChartData,
-  useUploadPlatformAdminReportMutation,
-} from '@/hooks'
+} from '@/hooks/useAdminReportsSummary'
+import { usePlatformChartData } from '@/hooks/usePlatformChartData'
+import { useUploadPlatformAdminReportMutation } from '@/hooks/useUploadPlatformAdminReportMutation'
 
 import { formatMoney, getPlatformCurrency } from '@/lib/platform-currency'
 

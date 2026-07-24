@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   CreditCard,
   Lock,
+  LockKeyhole,
   Sparkles,
 } from "lucide-react";
 import {
@@ -223,7 +224,9 @@ function UsagePill({
       className={cn(
         "tabular-nums",
         atLimit
-          ? "font-semibold text-red-200"
+          ? onAccent
+            ? "font-semibold text-red-200"
+            : "font-semibold text-red-700 dark:text-red-400"
           : onAccent
             ? "text-white/85"
             : "text-muted-foreground",
@@ -295,16 +298,27 @@ export function DashboardSidebarUpgrade({
     branchesUsed !== undefined &&
     branchesLimit !== undefined;
   const blockIsDestructive = messaging.badgeVariant === "destructive";
+  const expiredCardClass = blockIsDestructive
+    ? "border-red-200/80 bg-red-50/95 text-red-950 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-100"
+    : "border-amber-200/80 bg-amber-50/95 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100";
 
   return (
     <div
-      className={cn(dashboardSidebarTokens.upgradeCard, "space-y-1.5 p-2")}
-      style={{
-        backgroundColor: PRYROX_BRAND_BLUE,
-        borderColor: PRYROX_BRAND_BLUE,
-        borderWidth: 1,
-        borderStyle: "solid",
-      }}
+      className={cn(
+        dashboardSidebarTokens.upgradeCard,
+        "space-y-1.5 border p-2",
+        isExpired && expiredCardClass,
+      )}
+      style={
+        isExpired
+          ? undefined
+          : {
+              backgroundColor: PRYROX_BRAND_BLUE,
+              borderColor: PRYROX_BRAND_BLUE,
+              borderWidth: 1,
+              borderStyle: "solid",
+            }
+      }
     >
       {isExpired ? (
         <div
@@ -338,11 +352,25 @@ export function DashboardSidebarUpgrade({
 
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-white/75">
+          <p
+            className={cn(
+              "text-[9px] font-semibold uppercase tracking-wider",
+              isExpired
+                ? blockIsDestructive
+                  ? "text-red-700/80 dark:text-red-300/80"
+                  : "text-amber-700/80 dark:text-amber-300/80"
+                : "text-white/75",
+            )}
+          >
             Current plan
           </p>
           <div className="mt-0.5 flex min-w-0 items-baseline gap-1.5">
-            <p className="truncate text-xs font-semibold text-white">
+            <p
+              className={cn(
+                "truncate text-xs font-semibold",
+                isExpired ? "text-inherit" : "text-white",
+              )}
+            >
               {displayName}
             </p>
             {showDays && daysLeft !== null ? (
@@ -352,8 +380,21 @@ export function DashboardSidebarUpgrade({
             ) : null}
           </div>
         </div>
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-white/20 text-white">
-          <Sparkles className="size-3" />
+        <span
+          className={cn(
+            "flex size-6 shrink-0 items-center justify-center rounded-md",
+            isExpired
+              ? blockIsDestructive
+                ? "bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200"
+                : "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200"
+              : "bg-white/20 text-white",
+          )}
+        >
+          {isExpired ? (
+            <LockKeyhole className="size-3" />
+          ) : (
+            <Sparkles className="size-3" />
+          )}
         </span>
       </div>
 
@@ -363,14 +404,24 @@ export function DashboardSidebarUpgrade({
             label="Staff"
             current={staffUsed}
             max={staffLimit}
-            onAccent
+            onAccent={!isExpired}
           />
-          <span className="text-white/40">·</span>
+          <span
+            className={cn(
+              isExpired
+                ? blockIsDestructive
+                  ? "text-red-500/50"
+                  : "text-amber-600/50"
+                : "text-white/40",
+            )}
+          >
+            ·
+          </span>
           <UsagePill
             label="Branches"
             current={branchesUsed}
             max={branchesLimit}
-            onAccent
+            onAccent={!isExpired}
           />
         </p>
       ) : null}
@@ -386,8 +437,15 @@ export function DashboardSidebarUpgrade({
       ) : (
         <Link
           href={billingHref}
-          className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-white py-1.5 text-[10px] font-semibold transition-colors hover:bg-white/90"
-          style={{ color: PRYROX_BRAND_BLUE }}
+          className={cn(
+            "inline-flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-[10px] font-semibold transition-colors",
+            isExpired
+              ? blockIsDestructive
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "bg-amber-700 text-white hover:bg-amber-800 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
+              : "bg-white hover:bg-white/90",
+          )}
+          style={isExpired ? undefined : { color: PRYROX_BRAND_BLUE }}
         >
           {isExpired ? messaging.billingCta : "Manage plan"}
           <ArrowUpRight className="size-3 opacity-60" />

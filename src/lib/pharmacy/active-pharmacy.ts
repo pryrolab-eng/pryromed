@@ -1,5 +1,6 @@
 import {
   getMeContext,
+  getMeContextServer,
   setActivePharmacy,
   setActiveBranch,
   type MeContextMembership,
@@ -49,6 +50,34 @@ export async function resolveActivePharmacyContext(
       isPlatformAdmin: ctx.user.isPlatformAdmin,
     };
   } catch {
+    return {
+      activePharmacyId: null,
+      activeBranchId: null,
+      role: null,
+      memberships: [],
+      isPlatformAdmin: false,
+    };
+  }
+}
+
+/**
+ * Server-safe variant that properly forwards session cookies to the Nest backend.
+ * Use this in Next.js Server Components / layouts instead of `resolveActivePharmacyContext`.
+ */
+export async function resolveActivePharmacyContextServer(
+  userId: string,
+): Promise<ActivePharmacyContext> {
+  try {
+    const ctx = await getMeContextServer();
+    return {
+      activePharmacyId: ctx.activePharmacyId,
+      activeBranchId: ctx.activeBranchId,
+      role: ctx.role,
+      memberships: ctx.memberships.map(mapMembership),
+      isPlatformAdmin: ctx.user.isPlatformAdmin,
+    };
+  } catch (err) {
+    console.error("[resolveActivePharmacyContextServer] FAILED:", err);
     return {
       activePharmacyId: null,
       activeBranchId: null,

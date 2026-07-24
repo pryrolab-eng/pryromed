@@ -42,10 +42,12 @@ import { cn } from "@/lib/utils";
 import {
   adminPharmaciesQueryKey,
   useAdminPharmacies,
-  useAdminPlans,
+} from "@/hooks/useAdminPharmacies";
+import { useAdminPlans } from "@/hooks/useAdminPlans";
+import {
   useInsuranceProviders,
-} from "@/hooks";
-import type { InsuranceProviderRow } from "@/hooks";
+} from "@/hooks/useInsuranceProviders";
+import type { InsuranceProviderRow } from "@/hooks/useInsuranceProviders";
 import type { AdminPharmacyRow } from "@/lib/http/admin/pharmacies";
 import {
   createAdminPharmacy,

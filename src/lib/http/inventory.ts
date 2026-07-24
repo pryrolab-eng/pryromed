@@ -54,9 +54,17 @@ export type UpdateInventoryProductInput = {
   minimum_stock_level: number;
 };
 
+export type PaginatedInventoryList = {
+  rows: InventoryListRow[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export const inventoryKeys = {
   all: ["inventory"] as const,
-  list: (branchId?: string | null) => [...inventoryKeys.all, "list", branchId ?? "all"] as const,
+  list: (branchId?: string | null, page?: number, limit?: number) =>
+    [...inventoryKeys.all, "list", branchId ?? "all", page ?? 1, limit ?? 50] as const,
   analytics: (branchId?: string | null) => [...inventoryKeys.all, "analytics", branchId ?? "all"] as const,
   suppliers: () => [...inventoryKeys.all, "suppliers"] as const,
   combined: (branchId?: string | null) => [...inventoryKeys.all, "combined", branchId ?? "all"] as const,
@@ -84,17 +92,18 @@ const EMPTY_ANALYTICS: InventoryAnalytics = {
   inventoryTrend: [],
 };
 
-export async function getInventoryList(branchId?: string | null): Promise<InventoryListRow[]> {
+export async function getInventoryList(branchId?: string | null, page?: number, limit?: number): Promise<PaginatedInventoryList> {
   try {
     const params = new URLSearchParams();
     if (branchId && branchId !== "all") {
       params.set("branchId", branchId);
     }
+    if (page) params.set("page", String(page));
+    if (limit) params.set("limit", String(limit));
     const url = params.toString() ? `/api/inventory?${params}` : "/api/inventory";
-    const data = await fetchJson<InventoryListRow[]>(url);
-    return Array.isArray(data) ? data : [];
+    return await fetchJson<PaginatedInventoryList>(url);
   } catch {
-    return [];
+    return { rows: [], total: 0, page: 1, limit: 50 };
   }
 }
 

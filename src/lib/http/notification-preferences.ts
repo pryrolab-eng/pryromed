@@ -13,6 +13,7 @@ export type NotificationPrefsApi = {
   email: boolean;
   desktop: boolean;
   push: boolean;
+  subscriptionRenewalDays: number[];
 };
 
 export async function getNotificationPreferences(): Promise<NotificationPrefsApi> {

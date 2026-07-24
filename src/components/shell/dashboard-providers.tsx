@@ -7,7 +7,6 @@ import {
   useDashboardScrollHeader,
 } from "@/components/shell/dashboard-scroll-header-context";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { PharmacyProvider } from "@/hooks/usePharmacyStore";
 import { AiPanelProvider, AiFloatingTrigger } from "@/components/ai-panel";
 import { dashboardSurfaces } from "@/components/dashboard/dashboard-tokens";
 import { cn } from "@/lib/utils";
@@ -56,27 +55,25 @@ export function DashboardProviders({
   children,
   withPharmacyContext = true,
 }: Props) {
-  return (
-    <PharmacyProvider>
-      <SidebarProvider>
-        <AiPanelProvider>
-          <DashboardScrollHeaderProvider>
-            {withPharmacyContext ? (
-              <ActivePharmacyProvider>
-                <PharmacyBrandingProvider>
-                  <RealtimeInvalidationBridge />
-                  <GlobalPrefetchProvider>{children}</GlobalPrefetchProvider>
-                </PharmacyBrandingProvider>
-              </ActivePharmacyProvider>
-            ) : (
-              <GlobalPrefetchProvider>{children}</GlobalPrefetchProvider>
-            )}
-          </DashboardScrollHeaderProvider>
-          <AiFloatingTrigger />
-        </AiPanelProvider>
-      </SidebarProvider>
-    </PharmacyProvider>
-  );
+return (
+     <SidebarProvider>
+       <AiPanelProvider>
+         <DashboardScrollHeaderProvider>
+           {withPharmacyContext ? (
+             <ActivePharmacyProvider>
+               <PharmacyBrandingProvider>
+                 <RealtimeInvalidationBridge />
+                 <GlobalPrefetchProvider>{children}</GlobalPrefetchProvider>
+               </PharmacyBrandingProvider>
+             </ActivePharmacyProvider>
+           ) : (
+             <GlobalPrefetchProvider>{children}</GlobalPrefetchProvider>
+           )}
+         </DashboardScrollHeaderProvider>
+         <AiFloatingTrigger />
+       </AiPanelProvider>
+     </SidebarProvider>
+   );
 }
 
 /**

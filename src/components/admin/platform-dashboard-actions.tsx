@@ -29,10 +29,14 @@ import {
 } from '@/components/dashboard'
 import {
   adminPharmaciesQueryKey,
+} from '@/hooks/useAdminPharmacies'
+import {
   adminReportsSummaryQueryKey,
+} from '@/hooks/useAdminReportsSummary'
+import {
   insuranceProvidersQueryKey,
   useInsuranceProviders,
-} from '@/hooks'
+} from '@/hooks/useInsuranceProviders'
 import { createAdminPharmacy } from '@/lib/http/admin/pharmacies'
 import { createInsuranceProvider } from '@/lib/http/insurance'
 

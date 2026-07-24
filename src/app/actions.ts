@@ -25,6 +25,12 @@ async function api(path: string, options?: RequestInit) {
   const secureAuthCookie = cookieStore.get("__Secure-pryrox_session")?.value;
   const authCookie = secureAuthCookie ?? cookieStore.get("pryrox_session")?.value;
   const headersObj: Record<string, string> = { "Content-Type": "application/json", ...(options?.headers as Record<string, string>) };
+  // Forward Origin / Referer so the backend OriginGuard accepts server-action POSTs
+  const origin = requestHeaders.get("origin");
+  const referer = requestHeaders.get("referer");
+  if (origin) headersObj["Origin"] = origin;
+  else if (referer) headersObj["Referer"] = referer;
+  else if (host) headersObj["Origin"] = `${protocol}://${host}`;
   if (authCookie) {
     const cookieName = secureAuthCookie ? "__Secure-pryrox_session" : "pryrox_session";
     headersObj["Cookie"] = `${cookieName}=${authCookie}`;

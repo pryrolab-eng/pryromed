@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/auth/get-auth-user";
-import { resolveActivePharmacyContext } from "@/lib/pharmacy/active-pharmacy";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { SuperadminSidebar } from "@/components/superadmin-sidebar";
 import { DashboardShellBar } from "@/components/shell/dashboard-shell-bar";
@@ -11,6 +10,44 @@ import {
 import { AdminCommandPalette } from "@/components/dashboard";
 import { AiSlideOverPanel } from "@/components/ai-panel";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { resolveApiUrl } from "@/lib/http/migrated-api-prefixes";
+
+async function getBootstrapData() {
+  const { cookies: serverCookies, headers: serverHeaders } = await import("next/headers");
+  const store = await serverCookies();
+  const secureCookie = store.get("__Secure-pryrox_session")?.value;
+  const cookie = secureCookie ?? store.get("pryrox_session")?.value;
+  if (!cookie) {
+    console.error("[AdminLayout] getBootstrapData: no session cookie found");
+    return null;
+  }
+
+  const cookieStr = `${secureCookie ? "__Secure-pryrox_session" : "pryrox_session"}=${cookie}`;
+  const hdrs = await serverHeaders();
+  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+  const protocol = hdrs.get("x-forwarded-proto") ?? "https";
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  const { url } = resolveApiUrl("/api/auth/bootstrap");
+  const requestUrl = apiBase && url.startsWith("/")
+    ? `${apiBase}${url}`
+    : url;
+
+  const res = await fetch(requestUrl, {
+    headers: { Cookie: cookieStr },
+    cache: "no-store",
+  });
+
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data as Promise<{
+    ok: boolean;
+    me: {
+      user: { isPlatformAdmin: boolean };
+      memberships: Array<{ pharmacyId: string; pharmacyName: string | null; role: string | null; isActive: boolean }>;
+    };
+  }>;
+}
 
 export default async function AdminLayout({
   children,
@@ -22,10 +59,13 @@ export default async function AdminLayout({
     redirect("/sign-in");
   }
 
-  const ctx = await resolveActivePharmacyContext(user.id);
+  const bootstrap = await getBootstrapData();
   const isPlatformAdmin =
-    ctx.isPlatformAdmin ||
-    ctx.memberships.some((m) => m.role === "superadmin" || m.role === "admin");
+    bootstrap?.me?.user?.isPlatformAdmin ||
+    bootstrap?.me?.memberships?.some((m) => m.role === "superadmin" || m.role === "admin") ||
+    false;
+
+  console.log("[AdminLayout] user:", user?.id, "bootstrap:", JSON.stringify(bootstrap?.me?.user), "isPlatformAdmin:", isPlatformAdmin);
 
   if (!isPlatformAdmin) {
     redirect("/app");

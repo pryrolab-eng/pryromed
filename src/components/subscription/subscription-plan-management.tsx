@@ -27,9 +27,11 @@ import {
   Check,
   Clock,
   CreditCard,
+  Mail,
   Loader2,
   Plus,
   AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import { planDisplayName } from "@/lib/admin/plan-stats";
 import {
@@ -43,6 +45,7 @@ import { fallbackPlansForDisplay } from "@/lib/subscription/default-plans";
 import { normalizeSubscriptionPlanRow } from "@/lib/subscription/normalize-plan";
 import {
   createPendingSubscription,
+  renewSubscription,
   startPolarSubscriptionCheckout,
   type PaidCheckoutContext,
   type ScheduledChangeResponse,
@@ -77,6 +80,7 @@ export type CatalogPlan = {
   monthly_tx_limit: number;
   max_users: number;
   max_branches: number;
+  currency?: string;
 };
 
 type Props = {
@@ -400,7 +404,7 @@ export function SubscriptionPlanManagement({
       (p) => p.id === planIdOrName || p.name === planIdOrName
     );
     if (!plan) return;
-    if (plan.current && !isPendingPayment) return;
+    if (plan.current && !isPendingPayment && !isExpired) return;
 
     if (!isFirstTimeSubscriber && !isExpired && plan.price === currentPlanPrice) {
       alert("You are already on this plan tier.");
@@ -438,7 +442,9 @@ export function SubscriptionPlanManagement({
 
     setIsUpgradePaymentLoading(true);
     try {
-      const subscription = await createPendingSubscription(plan.id || plan.name);
+      // Use renew endpoint for expired subscriptions, upgrade for new/upgrade
+      const createSub = isExpired ? renewSubscription : createPendingSubscription;
+      const subscription = await createSub(plan.id || plan.name);
 
       const polar = await startPolarSubscriptionCheckout({
         planId: plan.id || plan.name,
@@ -607,7 +613,7 @@ export function SubscriptionPlanManagement({
                     <div>
                       <p className="font-semibold">{pendingPlan.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        RWF {pendingPlan.price.toLocaleString()} / month
+                        {pendingPlan.currency ?? "RWF"} {pendingPlan.price.toLocaleString()} / month
                       </p>
                     </div>
                     <Button
@@ -665,7 +671,7 @@ export function SubscriptionPlanManagement({
                     </Badge>
                     <h3 className="font-semibold text-lg">{plan.name}</h3>
                     <div className="text-3xl font-bold text-blue-600">
-                      {plan.price.toLocaleString()} RWF
+                      {plan.price.toLocaleString()} {plan.currency ?? "RWF"}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       per month · one branch
@@ -700,8 +706,9 @@ export function SubscriptionPlanManagement({
           setIsUpgradeDialogOpen(open);
         }}
       >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="max-w-lg overflow-hidden rounded-2xl p-0 shadow-2xl">
+          <div className="border-b border-amber-100 bg-gradient-to-br from-amber-50 via-white to-sky-50 px-6 py-5 dark:border-amber-900/50 dark:from-amber-950/40 dark:via-background dark:to-sky-950/20">
+          <DialogHeader className="text-left">
             <DialogTitle>{dialogTitlePrefix} {selectedUpgradePlan?.name} Plan</DialogTitle>
             <DialogDescription>
               {isUpgradePaymentLoading
@@ -709,24 +716,43 @@ export function SubscriptionPlanManagement({
                 : dialogDescription}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Amount:</span>
-                <span className="text-2xl font-bold text-blue-600">
-                  {selectedUpgradePlan?.price.toLocaleString()} RWF
+          </div>
+          <div className="space-y-5 px-6 py-5">
+            <div className="rounded-xl border border-neutral-200/80 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/50">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Plan total</span>
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    {selectedUpgradePlan?.name ?? "Selected plan"} subscription
+                  </p>
+                </div>
+                <span className="text-right text-3xl font-bold tracking-tight text-foreground">
+                  {selectedUpgradePlan?.price.toLocaleString()} {selectedUpgradePlan?.currency ?? "RWF"}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-2 border-t border-neutral-200/80 pt-3 text-xs text-muted-foreground dark:border-neutral-800">
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="size-3.5 text-emerald-600" />
+                  Access restores automatically after payment confirmation.
+                </span>
+                <span className="flex items-center gap-2">
+                  <Clock className="size-3.5 text-amber-600" />
+                  Renewal continues from your next billing cycle.
                 </span>
               </div>
             </div>
             <div className="space-y-3">
               <div className="grid gap-2">
-                <Label>Email</Label>
+                <Label className="text-sm font-medium">Receipt email</Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="email"
                   autoComplete="email"
                   placeholder="you@example.com"
                   value={upgradePaymentData.email}
                   disabled={isUpgradePaymentLoading}
+                  className="h-11 rounded-xl pl-9"
                   onChange={(e) =>
                     setUpgradePaymentData({
                       ...upgradePaymentData,
@@ -734,14 +760,18 @@ export function SubscriptionPlanManagement({
                     })
                   }
                 />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  We will send the checkout receipt and renewal confirmation here.
+                </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 border-t border-neutral-100 pt-4 dark:border-neutral-800">
               <Button
                 variant="outline"
                 onClick={() => setIsUpgradeDialogOpen(false)}
                 disabled={isUpgradePaymentLoading}
-                className="flex-1"
+                className="h-10 flex-1 rounded-xl"
               >
                 Cancel
               </Button>
@@ -751,7 +781,7 @@ export function SubscriptionPlanManagement({
                   isUpgradePaymentLoading ||
                   !upgradePaymentData.email
                 }
-                className="flex-1"
+                className="h-10 flex-1 rounded-xl bg-amber-700 text-white hover:bg-amber-800 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
               >
                 {isUpgradePaymentLoading ? (
                   <>
@@ -761,7 +791,7 @@ export function SubscriptionPlanManagement({
                 ) : (
                   <>
                     <CreditCard className="mr-2 h-4 w-4" />
-                    Pay Now
+                    Continue to payment
                   </>
                 )}
               </Button>

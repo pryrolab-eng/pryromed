@@ -128,8 +128,19 @@ function PharmacyBillingPageContent() {
     : null
   const showRenewBanner =
     daysUntilRenew != null && daysUntilRenew <= 7 && daysUntilRenew >= 0
+  const renewalUrgencyLabel =
+    daysUntilRenew === 0
+      ? 'Expires today'
+      : daysUntilRenew === 1
+        ? 'Expires tomorrow'
+        : `${daysUntilRenew} days left`
 
   useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'upgrade' || tab === 'branch-addons' || tab === 'invoices') {
+      setActiveTab(tab)
+      return
+    }
     const upgrade = searchParams.get('upgrade')
     if (upgrade && !can(upgrade)) {
       setActiveTab('upgrade')
@@ -213,7 +224,7 @@ function PharmacyBillingPageContent() {
           <DashboardStatCard
             label="Monthly cost"
             icon={TrendingUp}
-            value={`RWF ${(summary?.total_monthly_cost ?? 0).toLocaleString()}`}
+            value={`${summary?.main_subscription?.plan?.currency ?? "RWF"} ${(summary?.total_monthly_cost ?? 0).toLocaleString()}`}
             hint="Main plan + add-ons"
           />
           <DashboardStatCard
@@ -232,20 +243,31 @@ function PharmacyBillingPageContent() {
 
         {showRenewBanner && (
           <DashboardSectionCard
-            title="Renewal coming up"
-            className={statusToneSurfaceClass.warning}
+            title={daysUntilRenew === 0 ? 'Renew today to keep access' : 'Renewal coming up'}
+            description={`${summary?.main_subscription?.plan?.name ?? 'Your plan'} period ends on ${renewDate?.toLocaleDateString()}`}
+            className="relative overflow-hidden border-amber-300 bg-gradient-to-br from-amber-50 via-white to-amber-50 shadow-md shadow-amber-100/70 ring-1 ring-amber-200/70 dark:border-amber-800 dark:from-amber-950/50 dark:via-background dark:to-amber-950/30 dark:shadow-none dark:ring-amber-900/60"
             action={
-              <DashboardButton size="sm" onClick={() => setActiveTab('upgrade')}>
-                Renew / change plan
+              <DashboardButton
+                size="sm"
+                className="bg-amber-700 text-white hover:bg-amber-800 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
+                onClick={() => setActiveTab('upgrade')}
+              >
+                Choose plan now
               </DashboardButton>
             }
           >
-            <p className="flex items-start gap-2 text-sm">
-              <AlertTriangle className={cn("mt-0.5 size-4 shrink-0", statusToneIconClass.warning)} />
-              Your plan renews on {renewDate?.toLocaleDateString()} ({daysUntilRenew}{' '}
-              day{daysUntilRenew !== 1 ? 's' : ''} left). Choose a plan to pay for the next
-              period.
-            </p>
+            <div className="flex items-start gap-3 text-sm text-amber-950 dark:text-amber-100">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 ring-4 ring-amber-100/70 dark:bg-amber-900/70 dark:text-amber-200 dark:ring-amber-900/40">
+                <AlertTriangle className="size-4" />
+              </span>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">{renewalUrgencyLabel}</p>
+                <p className="max-w-3xl leading-relaxed text-amber-900/85 dark:text-amber-100/80">
+                  Renew or change your plan before the period ends so POS, inventory,
+                  reports, staff, and branch access continue without interruption.
+                </p>
+              </div>
+            </div>
           </DashboardSectionCard>
         )}
 
@@ -283,7 +305,7 @@ function PharmacyBillingPageContent() {
                 description={
                   summary.main_subscription.plan?.billing_period === 'free'
                     ? 'Free forever'
-                    : `RWF ${Number(summary.main_subscription.plan?.price ?? 0).toLocaleString()} / ${summary.main_subscription.plan?.billing_period}`
+                    : `${summary.main_subscription.plan?.currency ?? "RWF"} ${Number(summary.main_subscription.plan?.price ?? 0).toLocaleString()} / ${summary.main_subscription.plan?.billing_period}`
                 }
                 action={
                   <div className="flex items-center gap-2">
@@ -418,7 +440,7 @@ function PharmacyBillingPageContent() {
                             {sub.plan?.name ?? 'Branch add-on'}
                           </p>
                           <p className="text-xs text-neutral-500">
-                            RWF {Number(sub.plan?.price ?? 0).toLocaleString()} /{' '}
+                            {sub.plan?.currency ?? "RWF"} {Number(sub.plan?.price ?? 0).toLocaleString()} /{' '}
                             {sub.plan?.billing_period}
                           </p>
                         </div>
@@ -487,7 +509,7 @@ function PharmacyBillingPageContent() {
                   <DashboardSectionCard
                     key={plan.id}
                     title={plan.name}
-                    description={`RWF ${Number(plan.price).toLocaleString()} / ${plan.billing_period}`}
+                    description={`${plan.currency ?? "RWF"} ${Number(plan.price).toLocaleString()} / ${plan.billing_period}`}
                     action={
                       <DashboardButton
                         tone="primary"

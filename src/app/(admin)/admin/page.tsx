@@ -21,12 +21,16 @@ import {
   AdminRecentPharmaciesPanel,
 } from '@/components/admin/dashboard';
 import { dashboardText } from '@/components/dashboard/dashboard-tokens';
+import { useAdminDashboardData } from '@/hooks/useAdminDashboardData';
 import {
   adminPharmaciesQueryKey,
+} from '@/hooks/useAdminPharmacies';
+import {
   adminReportsSummaryQueryKey,
-  useAdminDashboardData,
+} from '@/hooks/useAdminReportsSummary';
+import {
   useInsuranceProviders,
-} from '@/hooks';
+} from '@/hooks/useInsuranceProviders';
 import { PlatformAnalyticsChart } from '@/components/admin/platform-analytics-chart';
 import { PlatformDashboardActions } from '@/components/admin/platform-dashboard-actions';
 import { RealtimeStatus } from '@/components/RealtimeStatus';
@@ -89,7 +93,7 @@ export default function AdminPage() {
       active_subscriber_count?: number
     }>
 
-    const planBreakdown = reports?.planBreakdown ?? []
+    const planBreakdown = Array.isArray(reports?.planBreakdown) ? reports.planBreakdown : []
     const paymentRevenue = reports?.totalRevenue ?? 0
 
     const countsFromPharmacies: Record<string, number> = {}
@@ -178,7 +182,7 @@ export default function AdminPage() {
         plan: resolvePharmacyPlanLabel(p, plans),
       }))
 
-    const revenueData = reports?.revenueData ?? []
+    const revenueData = Array.isArray(reports?.revenueData) ? reports.revenueData : []
     const chartDataArray = buildPlatformChartSeries(pharmacies, revenueData, {
       months: 12,
     })

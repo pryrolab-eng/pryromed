@@ -80,7 +80,7 @@ export function InsurancePriceManager({ autoOpen = false }: Props) {
 
   const catalog = useMemo(() => {
     const seen = new Map<string, string>()
-    for (const row of inventoryQuery.data ?? []) {
+    for (const row of inventoryQuery.data?.rows ?? []) {
       const medicationId = row.medicationId || row.id
       if (!seen.has(medicationId)) {
         seen.set(medicationId, row.name)

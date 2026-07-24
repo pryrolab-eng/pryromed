@@ -14,18 +14,22 @@ import { toast } from "sonner";
 
 import {
   adminSystemSettingsQueryKey,
+  useAdminSystemSettings,
+} from "@/hooks/useAdminSystemSettings";
+import {
   useAdminApiKeys,
   useAdminIpWhitelist,
-  useAdminSystemSettings,
   useAddAdminIpWhitelistMutation,
   useCreateAdminApiKeyMutation,
-  useCreateStockLocationMutation,
   useDeleteAdminApiKeyMutation,
   useRemoveAdminIpWhitelistMutation,
-  useStockLocations,
   useUpdateAdminApiKeyMutation,
   type AdminApiKeyRow,
-} from "@/hooks";
+} from "@/hooks/useAdminPlatformSecurity";
+import {
+  useCreateStockLocationMutation,
+  useStockLocations,
+} from "@/hooks/useStockLocations";
 import { getMeContext, meContextKeys } from "@/lib/http/me-context";
 import {
   useSetTwoFaEnabledMutation,
@@ -212,7 +216,7 @@ function useAdminSettingsState(): AdminSettingsContextValue {
     if (meContextQuery.data) {
       const user = meContextQuery.data.user;
       setProfile({
-        name: user.fullName?.split(" ")[0] ?? "",
+        name: user.fullName?.split(" ")[0] ?? user.fullName ?? "",
         fullName: user.fullName ?? "",
         email: user.email ?? "",
       });

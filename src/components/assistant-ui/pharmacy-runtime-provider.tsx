@@ -3,6 +3,7 @@
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useLocalRuntime, type ChatModelAdapter } from "@assistant-ui/react";
 import { useMemo, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAiPanel } from "@/components/ai-panel/ai-panel-context";
 import { resolveApiUrl } from "@/lib/http/migrated-api-prefixes";
 
@@ -35,6 +36,7 @@ function useAiChatAdapter(
   pageContext: AiPageContext | undefined,
   setUpgradeDialogOpen: (open: boolean) => void,
 ): ChatModelAdapter {
+  const queryClient = useQueryClient();
   return useMemo(
     () => ({
       async *run({ messages, abortSignal }) {
@@ -139,7 +141,7 @@ function useAiChatAdapter(
                 // Final yield with complete content
                 const contentParts: any[] = [];
 
-                if (event.toolCalls && Array.isArray(event.toolCalls)) {
+                if (event.toolCalls && Array.isArray(event.toolCalls) && event.toolCalls.length > 0) {
                   event.toolCalls.forEach((tc: any) => {
                     contentParts.push({
                       type: "tool-call",
@@ -149,6 +151,8 @@ function useAiChatAdapter(
                       result: tc.result,
                     });
                   });
+                  // Trigger UI refresh across the app for mutated data (profile, settings, etc.)
+                  void queryClient.invalidateQueries();
                 }
 
                 if (event.content) {
@@ -173,7 +177,7 @@ function useAiChatAdapter(
         }
       },
     }),
-    [scope, threadId, onThreadCreated, pageContext, setUpgradeDialogOpen],
+    [scope, threadId, onThreadCreated, pageContext, setUpgradeDialogOpen, queryClient],
   );
 }
 

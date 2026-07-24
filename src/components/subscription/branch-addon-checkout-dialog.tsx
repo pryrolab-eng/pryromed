@@ -164,7 +164,7 @@ export function BranchAddonCheckoutDialog({
               <SelectContent>
                 {addonPlans.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.name} — RWF {Number(p.price).toLocaleString()}/
+                    {p.name} — {p.currency ?? "RWF"} {Number(p.price).toLocaleString()}/
                     {p.billing_period}
                   </SelectItem>
                 ))}
@@ -238,7 +238,7 @@ export function BranchAddonCheckoutDialog({
               <div className="flex justify-between items-center pt-1">
                 <span className="font-medium">Total due now</span>
                 <span className="text-xl font-bold text-blue-700">
-                  RWF {Number(selectedPlan.price).toLocaleString()}
+                  {selectedPlan.currency ?? "RWF"} {Number(selectedPlan.price).toLocaleString()}
                 </span>
               </div>
             </div>

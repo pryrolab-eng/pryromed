@@ -24,52 +24,66 @@ export function GlobalPrefetchProvider({ children }: { children: React.ReactNode
   const { scopeQuery, days } = useBranchReportScope();
 
   useEffect(() => {
-    // Defer cross-page prefetch so the current route wins the connection pool first.
+    // Stagger cross-page prefetch to avoid saturating the network on slow connections.
     const prefetchAll = async () => {
-      await Promise.allSettled([
-        queryClient.prefetchQuery({
-          queryKey: pharmacyDashboardKeys.combined(
-            scopeQuery?.branchId,
-            days,
-          ),
-          queryFn: () =>
-            getCombinedDashboardData({
-              ...scopeQuery,
-              branchId: scopeQuery?.branchId,
-            }),
-          staleTime: PREFETCH_STALE_MS,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: inventoryKeys.combined(scopeQuery?.branchId),
-          queryFn: () => getCombinedInventoryData(scopeQuery?.branchId),
-          staleTime: PREFETCH_STALE_MS,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: salesKeys.combined(),
-          queryFn: getCombinedSalesData,
-          staleTime: PREFETCH_STALE_MS,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: customersKeys.combined(),
-          queryFn: getCombinedCustomersData,
-          staleTime: PREFETCH_STALE_MS,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: prescriptionsKeys.list(),
-          queryFn: getPrescriptions,
-          staleTime: PREFETCH_STALE_MS,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: saasKeys.subscription(),
-          queryFn: getSaasSubscriptionSummary,
-          staleTime: PREFETCH_STALE_MS,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: saasKeys.plans(),
-          queryFn: getSaasPlans,
-          staleTime: PREFETCH_STALE_MS,
-        }),
-      ]);
+      const prefetches = [
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: pharmacyDashboardKeys.combined(
+              scopeQuery?.branchId,
+              days,
+            ),
+            queryFn: () =>
+              getCombinedDashboardData({
+                ...scopeQuery,
+                branchId: scopeQuery?.branchId,
+              }),
+            staleTime: PREFETCH_STALE_MS,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: inventoryKeys.combined(scopeQuery?.branchId),
+            queryFn: () => getCombinedInventoryData(scopeQuery?.branchId),
+            staleTime: PREFETCH_STALE_MS,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: salesKeys.combined(),
+            queryFn: getCombinedSalesData,
+            staleTime: PREFETCH_STALE_MS,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: customersKeys.combined(),
+            queryFn: getCombinedCustomersData,
+            staleTime: PREFETCH_STALE_MS,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: prescriptionsKeys.list(),
+            queryFn: getPrescriptions,
+            staleTime: PREFETCH_STALE_MS,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: saasKeys.subscription(),
+            queryFn: getSaasSubscriptionSummary,
+            staleTime: PREFETCH_STALE_MS,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: saasKeys.plans(),
+            queryFn: getSaasPlans,
+            staleTime: PREFETCH_STALE_MS,
+          }),
+      ];
+
+      // Fire first 2 immediately, then stagger the rest
+      await Promise.allSettled([prefetches[0](), prefetches[1]()]);
+      for (let i = 2; i < prefetches.length; i++) {
+        await new Promise((r) => setTimeout(r, 300));
+        await prefetches[i]();
+      }
     };
 
     if (typeof window.requestIdleCallback === "function") {

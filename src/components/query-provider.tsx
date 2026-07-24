@@ -12,12 +12,18 @@ import { useMemo } from "react";
 import { ReactQueryDevtools as ReactQueryDevtoolsBase } from "@tanstack/react-query-devtools";
 
 const CACHE_KEY = "rq:persist";
+const MAX_CACHE_SIZE = 4 * 1024 * 1024; // 4MB — leave room for other localStorage entries
 
 function createLocalStoragePersister(): Persister {
   return {
     persistClient: async (client) => {
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(client));
+        const serialized = JSON.stringify(client);
+        if (serialized.length > MAX_CACHE_SIZE) {
+          localStorage.removeItem(CACHE_KEY);
+          return;
+        }
+        localStorage.setItem(CACHE_KEY, serialized);
       } catch {
         // storage full or unavailable
       }

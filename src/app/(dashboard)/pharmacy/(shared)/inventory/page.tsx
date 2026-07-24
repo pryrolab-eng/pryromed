@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
-import { usePharmacyStore } from '@/hooks/usePharmacyStore'
 import { isHeadquartersBranch } from '@/lib/pharmacy/branch-hq'
 import { CategorySelect } from '@/components/catalog/category-select'
 import type { CategoryCatalogItem } from '@/lib/pharmacy/category-catalog'
@@ -84,7 +83,6 @@ import {
 import { useActivePharmacy } from '@/components/providers/active-pharmacy-provider'
 import { useSaasBranches } from '@/hooks/useSaasSubscription'
 import { shouldHideLockedFeature } from '@/lib/subscription/nav-entitlement-display'
-import * as XLSX from 'xlsx'
 import {
   inventoryPreviewToApiRow,
   validateInventoryImportRows,
@@ -180,9 +178,8 @@ export default function InventoryPage() {
     if (tab === 'alerts' || tab === 'analytics' || tab === 'actions') return tab
     return 'inventory'
   }, [searchParams, canInsurance])
-  const [activeTab, setActiveTab] = useState(resolvedTab)
-  const { inventory, setInventory } = usePharmacyStore()
-  const combinedQuery = useCombinedInventory({ branchId: activeBranchId })
+const [activeTab, setActiveTab] = useState(resolvedTab)
+   const combinedQuery = useCombinedInventory({ branchId: activeBranchId })
   const inventoryQuery = { data: combinedQuery.data?.inventory, isPending: combinedQuery.isPending }
   const analyticsQuery = useInventoryAnalytics({
     enabled: activeTab === 'analytics' && showAnalyticsTab,
@@ -273,11 +270,7 @@ export default function InventoryPage() {
     notes: ''
   })
 
-  useEffect(() => {
-    if (localInventory.length > 0) {
-      setInventory(localInventory)
-    }
-  }, [localInventory, setInventory])
+
 
   useEffect(() => {
     setActiveTab(resolvedTab)
@@ -320,7 +313,7 @@ export default function InventoryPage() {
         unit_cost: parseFloat(newProduct.purchasePrice) || 0,
         selling_price: parseFloat(newProduct.price) || 0,
         minimum_stock_level: parseInt(newProduct.minStock) || 0,
-        expiry_date: newProduct.expiryDate || '2025-12-31',
+        expiry_date: newProduct.expiryDate || '2030-12-31',
         stockLocation: newProduct.stockLocation,
       })
 
@@ -439,7 +432,8 @@ export default function InventoryPage() {
     ],
   )
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    const XLSX = await import('xlsx')
     const worksheet = XLSX.utils.json_to_sheet(localInventory.map(item => ({
       'Product Name': item.name,
       'Category': item.category,
@@ -690,7 +684,7 @@ export default function InventoryPage() {
 
   const handleTransfer = async () => {
     try {
-      const product = inventory.find(p => p.id === transferForm.productId)
+      const product = localInventory.find(p => p.id === transferForm.productId)
       
       if (!product) {
         toast({

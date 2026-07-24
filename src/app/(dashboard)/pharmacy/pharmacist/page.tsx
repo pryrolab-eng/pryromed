@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { usePharmacyStore } from '@/hooks/usePharmacyStore'
 import {
   usePharmacistActivities,
   usePharmacistChartData,
@@ -87,7 +86,6 @@ export default function PharmacistDashboard() {
 
 function PharmacistDashboardContent() {
   const router = useRouter()
-  const { setAlerts } = usePharmacyStore()
 
   const statsQuery = usePharmacistDashboardStats()
   const prescriptionsQuery = usePharmacistPrescriptions()
@@ -112,12 +110,7 @@ function PharmacistDashboardContent() {
   const recentActivities: PharmacistActivity[] = activitiesQuery.data ?? []
   const chartData = chartQuery.data ?? []
 
-  useEffect(() => {
-    const data = stockAlertsQuery.data
-    if (data) setAlerts(data.all ?? [])
-  }, [stockAlertsQuery.data, setAlerts])
-
-  const stockAlerts = (stockAlertsQuery.data?.lowStock ?? []).map(toStockAlert)
+const stockAlerts = (stockAlertsQuery.data?.lowStock ?? []).map(toStockAlert)
   const expirationAlerts = (stockAlertsQuery.data?.expiring ?? []).map(
     toExpirationAlert,
   )

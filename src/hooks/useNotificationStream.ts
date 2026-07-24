@@ -49,7 +49,8 @@ export function useNotificationStream(): UseNotificationStreamResult {
       });
       // If access token expired, try to refresh it once then retry
       if (response.status === 401) {
-        const refreshed = await fetch("/api/auth/refresh", {
+        const { url: refreshUrl } = resolveApiUrl("/api/auth/refresh");
+        const refreshed = await fetch(refreshUrl, {
           method: "POST",
           credentials: "include",
           cache: "no-store",
@@ -94,7 +95,8 @@ export function useNotificationStream(): UseNotificationStreamResult {
         // Try refreshing the session then reconnect after a short delay
         source?.close();
         if (!closed) {
-          fetch("/api/auth/refresh", { method: "POST", credentials: "include", cache: "no-store" })
+          const { url: refreshUrl2 } = resolveApiUrl("/api/auth/refresh");
+          fetch(refreshUrl2, { method: "POST", credentials: "include", cache: "no-store" })
             .catch(() => {})
             .finally(() => {
               if (!closed) setTimeout(connect, 3000);

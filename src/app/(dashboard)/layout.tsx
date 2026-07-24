@@ -9,7 +9,7 @@ import { isStaffWorkspaceRole } from '@/lib/rbac/pharmacy-roles'
 import SubscriptionBlocker from '@/components/subscription-blocker'
 import { FeatureRouteGuard } from '@/components/subscription/feature-route-guard'
 import { StaffRoleRouteGuard } from '@/components/subscription/staff-role-route-guard'
-import { resolveActivePharmacyContext } from '@/lib/pharmacy/active-pharmacy'
+import { resolveActivePharmacyContextServer } from '@/lib/pharmacy/active-pharmacy'
 import { DashboardShellBar } from '@/components/shell/dashboard-shell-bar'
 import {
   DashboardMainScroll,
@@ -29,8 +29,11 @@ export default async function DashboardLayout({
     redirect('/sign-in')
   }
 
-  const ctx = await resolveActivePharmacyContext(user.id)
+  const ctx = await resolveActivePharmacyContextServer(user.id)
   const isPlatformAdmin = ctx.isPlatformAdmin
+  if (isPlatformAdmin) {
+    redirect('/admin')
+  }
   const userProfile = selectPrimaryMembership(ctx.memberships)
   const userRole = userProfile?.role || ctx.role || 'pharmacy_owner'
 

@@ -28,13 +28,19 @@ import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import {
   adminBillingQueryKey,
-  adminPharmaciesQueryKey,
-  adminPlansQueryKey,
-  adminReportsSummaryQueryKey,
   useAdminBilling,
+} from '@/hooks/useAdminBilling'
+import {
+  adminPharmaciesQueryKey,
   useAdminPharmacies,
+} from '@/hooks/useAdminPharmacies'
+import {
+  adminPlansQueryKey,
   useAdminPlans,
-} from '@/hooks'
+} from '@/hooks/useAdminPlans'
+import {
+  adminReportsSummaryQueryKey,
+} from '@/hooks/useAdminReportsSummary'
 import { cancelAdminPendingBilling } from '@/lib/http/admin/billing'
 import { fetchJson } from '@/lib/http/client'
 import type { AdminPharmacyRow } from '@/lib/http/admin/pharmacies'

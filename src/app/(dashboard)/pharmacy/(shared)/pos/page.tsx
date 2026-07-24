@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { getCustomer } from '@/lib/http/customers'
-import { usePharmacyStore } from '@/hooks/usePharmacyStore'
 import {
   checkPosTransactionAllowed,
   useAnalyzeCartSafetyMutation,
@@ -75,6 +74,7 @@ import { useAiPageContext } from '@/components/ai-panel'
 import { createPosPageContext } from '@/lib/ai/page-context'
 import { useActivePharmacy } from '@/components/providers/active-pharmacy-provider'
 import { PosReturnsDialog } from '@/components/pos/pos-returns-dialog'
+import { PosUtilityDialog } from '@/components/pos/pos-utility-dialog'
 import { PosWorkspace } from '@/components/pos/pos-workspace'
 import { PosAlertsSheet } from '@/components/pos/pos-alerts-sheet'
 import {
@@ -117,6 +117,7 @@ export default function POSPage() {
 
 function POSPageContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const preloadedCustomerIdRef = useRef<string | null>(null)
   const { can } = usePharmacyEntitlements()
   const { activeBranchId, isHydrating: isContextHydrating, context, switchBranch } =
@@ -159,9 +160,7 @@ function POSPageContent() {
   const [quickAddPatientName, setQuickAddPatientName] = useState('')
   const [quickAddProductCategory, setQuickAddProductCategory] = useState('')
   const [insuranceInterfaceOpen, setInsuranceInterfaceOpen] = useState(false)
-  const [ramaBeneficiaryOpen, setRamaBeneficiaryOpen] = useState(false)
   const [alertsOpen, setAlertsOpen] = useState(false)
-  const [returnsDialogOpen, setReturnsDialogOpen] = useState(false)
   const [utilityDialog, setUtilityDialog] = useState<PosUtilityDialog>(null)
   const [utilityInput, setUtilityInput] = useState('')
   const [utilityReason, setUtilityReason] = useState('User requested')
@@ -176,6 +175,7 @@ function POSPageContent() {
   const [checkoutAfterRx, setCheckoutAfterRx] = useState(false)
   const [checkoutNearExpiryOpen, setCheckoutNearExpiryOpen] = useState(false)
   const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false)
+  const [returnsDialogOpen, setReturnsDialogOpen] = useState(false)
   const [pendingReceipt, setPendingReceipt] = useState<PosReceiptInput | null>(null)
   const deferredCheckoutRef = useRef<{
     prescriptionConfirmation?: PrescriptionConfirmation
@@ -498,8 +498,6 @@ function POSPageContent() {
       })
   }, [searchParams])
 
-  const { addSale, updateStock } = usePharmacyStore()
-
   // ── Subscription / transaction gate ──────────────────────
   const [txBlocked, setTxBlocked] = useState<{
     reason: string
@@ -660,8 +658,11 @@ function POSPageContent() {
     }
   }
 
+  const completeSaleRef = useRef(completeSale)
+  completeSaleRef.current = completeSale
+
   const processSale = () => {
-    void completeSale()
+    void completeSaleRef.current()
   }
 
   const confirmPrescriptionAndCheckout = () => {
@@ -944,7 +945,6 @@ function POSPageContent() {
           cartItemCount={cart.length}
           coverageLines={coverageTotals?.lines}
           coverageLoading={coveragePreviewQuery.isFetching}
-          onOpenRamaBeneficiary={() => setRamaBeneficiaryOpen(true)}
           lookupPending={insuranceLookupMutation.isPending}
           processPending={insuranceProcessMutation.isPending}
           onLookup={(insuranceNumber) =>
@@ -959,175 +959,26 @@ function POSPageContent() {
         />
       </FeatureGate>
 
-      <Dialog open={utilityDialog !== null} onOpenChange={(open) => !open && closeUtilityDialog()}>
-        <DashboardDialogContent className="sm:max-w-md">
-          <DashboardDialogHeader>
-            <DashboardDialogTitle>
-              {utilityDialog === 'customer-lookup' && 'Lookup customer'}
-              {utilityDialog === 'price-check' && 'Check product price'}
-              {utilityDialog === 'void-sale' && 'Void sale'}
-            </DashboardDialogTitle>
-            <DashboardDialogDescription>
-              {utilityDialog === 'customer-lookup' &&
-                'Search by customer phone and apply the first match to the sale.'}
-              {utilityDialog === 'price-check' &&
-                'Search by product name or barcode before adding it to the cart.'}
-              {utilityDialog === 'void-sale' &&
-                'Enter the sale ID and reason before voiding a completed sale.'}
-            </DashboardDialogDescription>
-          </DashboardDialogHeader>
-          <DashboardDialogBody className="space-y-3">
-            <Input
-              autoFocus
-              value={utilityInput}
-              onChange={(event) => setUtilityInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  void runUtilityDialog()
-                }
-              }}
-              placeholder={
-                utilityDialog === 'customer-lookup'
-                  ? 'Customer phone'
-                  : utilityDialog === 'price-check'
-                    ? 'Product name or barcode'
-                    : 'Sale ID'
-              }
-            />
-            {utilityDialog === 'void-sale' && (
-              <Input
-                value={utilityReason}
-                onChange={(event) => setUtilityReason(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    void runUtilityDialog()
-                  }
-                }}
-                placeholder="Void reason"
-              />
-            )}
-          </DashboardDialogBody>
-          <DashboardDialogActions
-            confirmLabel={
-              utilityDialog === 'customer-lookup'
-                ? 'Lookup'
-                : utilityDialog === 'price-check'
-                  ? 'Check price'
-                  : 'Void sale'
-            }
-            onConfirm={() => void runUtilityDialog()}
-            confirmDisabled={
-              !utilityInput.trim() ||
-              customerLookupMutation.isPending ||
-              priceCheckMutation.isPending ||
-              voidSaleMutation.isPending
-            }
-            confirmLoading={
-              customerLookupMutation.isPending ||
-              priceCheckMutation.isPending ||
-              voidSaleMutation.isPending
-            }
-            onCancel={closeUtilityDialog}
-          />
-        </DashboardDialogContent>
-      </Dialog>
-
-      <Dialog open={ramaBeneficiaryOpen} onOpenChange={setRamaBeneficiaryOpen}>
-        <DashboardDialogContent className="max-w-2xl">
-          <DashboardDialogHeader>
-            <DashboardDialogTitle>RAMA beneficiary</DashboardDialogTitle>
-            <DashboardDialogDescription>
-              Register and manage insurance beneficiaries under RAMA.
-            </DashboardDialogDescription>
-          </DashboardDialogHeader>
-          <DashboardDialogBody className="max-h-96 space-y-4 overflow-y-auto">
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">1. Identification Details</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="CODE (auto-generated)" disabled />
-                <Input placeholder="AFFILIATION NUMBER" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="FIRST NAME AFFILIATE" />
-                <Input placeholder="SECOND NAME AFFILIATE" />
-              </div>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="LINK (Relationship)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="self">Self</SelectItem>
-                  <SelectItem value="spouse">Spouse</SelectItem>
-                  <SelectItem value="dependent">Dependent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">2. Beneficiary Information</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="FIRST NAME BENEFICIARY" />
-                <Input placeholder="SECOND NAME BENEFICIARY" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="DATE OF BIRTH" type="date" />
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="GENDER" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Input placeholder="PLACE OF AFFILIATION" />
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">3. Insurance Details</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="INSURANCE" value="RAMA" disabled />
-                <Input placeholder="BENEFICIARY NUMBER" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="PERCENTAGE (e.g., 15%)" />
-                <Input placeholder="EXPIRATION DATE" type="date" />
-              </div>
-              <Input placeholder="DEPARTMENT" />
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">4. Contact & Verification</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="V_TELNUMBER" />
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="STATUS" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="activated">Activated</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="PIN" />
-                <Input placeholder="GLOBAL INEZA ID" />
-              </div>
-            </div>
-          </DashboardDialogBody>
-          <DashboardDialogActions
-            cancelLabel="Cancel"
-            confirmLabel="Save"
-            onCancel={() => setRamaBeneficiaryOpen(false)}
-            onConfirm={() => setRamaBeneficiaryOpen(false)}
-          />
-        </DashboardDialogContent>
-      </Dialog>
+      <PosUtilityDialog
+        dialog={utilityDialog}
+        input={utilityInput}
+        onInputChange={setUtilityInput}
+        reason={utilityReason}
+        onReasonChange={setUtilityReason}
+        onClose={closeUtilityDialog}
+        onConfirm={() => runUtilityDialog()}
+        confirmLoading={
+          customerLookupMutation.isPending ||
+          priceCheckMutation.isPending ||
+          voidSaleMutation.isPending
+        }
+        confirmDisabled={
+          !utilityInput.trim() ||
+          customerLookupMutation.isPending ||
+          priceCheckMutation.isPending ||
+          voidSaleMutation.isPending
+        }
+      />
 
       <PosAlertsSheet
         open={alertsOpen}
@@ -1190,87 +1041,8 @@ function POSPageContent() {
               </>
             )}
             {quickAddDialog === 'rama-beneficiary' && (
-              <div className="max-h-96 overflow-y-auto space-y-4">
-                <div className="text-sm text-muted-foreground mb-4">
-                  Register and manage insurance beneficiaries under the RAMA system
-                </div>
-                
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm">1. Identification Details</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="CODE (auto-generated)" disabled />
-                    <Input placeholder="AFFILIATION NUMBER" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="FIRST NAME AFFILIATE" />
-                    <Input placeholder="SECOND NAME AFFILIATE" />
-                  </div>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="LINK (Relationship)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="self">Self</SelectItem>
-                      <SelectItem value="spouse">Spouse</SelectItem>
-                      <SelectItem value="dependent">Dependent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm">2. Beneficiary Information</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="FIRST NAME BENEFICIARY" />
-                    <Input placeholder="SECOND NAME BENEFICIARY" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="DATE OF BIRTH" type="date" />
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="GENDER" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Input placeholder="PLACE OF AFFILIATION" />
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm">3. Insurance Details</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="INSURANCE" value="RAMA" disabled />
-                    <Input placeholder="BENEFICIARY NUMBER" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="PERCENTAGE (e.g., 15%)" />
-                    <Input placeholder="EXPIRATION DATE" type="date" />
-                  </div>
-                  <Input placeholder="DEPARTMENT" />
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm">4. Contact & Verification</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="V_TELNUMBER" />
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="STATUS" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="activated">Activated</SelectItem>
-                        <SelectItem value="suspended">Suspended</SelectItem>
-                        <SelectItem value="expired">Expired</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="PIN" />
-                    <Input placeholder="GLOBAL INEZA ID" />
-                  </div>
-                </div>
+              <div className="text-sm text-muted-foreground mb-4">
+                RAMA beneficiary registration is not yet connected to the API.
               </div>
             )}
           </form>
@@ -1369,7 +1141,7 @@ function POSPageContent() {
                       setSelectedCategory('all')
                     }
                     if (quickAddDialog === 'insurance') {
-                      window.location.reload()
+                      router.refresh()
                     }
                   } else {
                     toast.error(result.error || 'Request failed')

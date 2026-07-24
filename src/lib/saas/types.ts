@@ -12,6 +12,7 @@ export interface SubscriptionPlan {
   id: string
   name: string
   price: number
+  currency?: string
   period: string
   billing_period: BillingPeriod
   plan_type: PlanType

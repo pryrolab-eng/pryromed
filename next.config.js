@@ -6,7 +6,7 @@ const isDev = process.env.NODE_ENV === 'development';
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 const nextConfig = {
-    reactStrictMode: false,
+    reactStrictMode: true,
     async rewrites() {
         // In production, proxy /api/* to the NestJS backend server-side.
         // This keeps the session cookie on the same domain (Vercel) — no cross-domain cookie issues.

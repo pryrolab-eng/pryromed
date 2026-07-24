@@ -54,7 +54,7 @@ export function PlanCatalogSections({
   }
 
   if (currentPlan) {
-    allPlans.push({ plan: currentPlan, action: "current" });
+    allPlans.push({ plan: currentPlan, action: isExpired ? "renew" : "current" });
   }
 
   for (const plan of upgradePlans) {

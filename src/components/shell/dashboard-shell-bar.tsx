@@ -46,7 +46,7 @@ export function DashboardShellBar({
     >
       {/* Left: sidebar trigger + pinned page title */}
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-        <SidebarTrigger className="shrink-0 md:hidden" />
+        <SidebarTrigger className="shrink-0" />
         <AnimatePresence mode="popLayout">
           {isPinned && config ? (
             <motion.span
@@ -68,7 +68,7 @@ export function DashboardShellBar({
         <div className="ml-2 flex shrink-0 items-center gap-1">
           {showNotifications ? <NotificationBell /> : null}
           {showBranchSwitcher ? (
-            <div className="w-[160px] sm:w-[200px] md:w-[240px]">
+            <div className="w-[140px] sm:w-[180px] md:w-[220px]">
               <ShellBarBranchSwitcher />
             </div>
           ) : null}

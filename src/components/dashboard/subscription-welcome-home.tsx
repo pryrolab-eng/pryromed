@@ -10,6 +10,7 @@ import {
   CreditCard,
   GitBranch,
   LifeBuoy,
+  LockKeyhole,
   Mail,
   ShieldAlert,
   Sparkles,
@@ -78,7 +79,7 @@ function getBlockTheme(
       Icon:
         reason === "pending_payment" || reason === "past_due"
           ? CreditCard
-          : Clock,
+          : LockKeyhole,
       hero:
         "border-amber-200/80 bg-gradient-to-br from-amber-400/[0.14] via-amber-50/90 to-background dark:border-amber-900/50 dark:from-amber-500/15 dark:via-amber-950/35 dark:to-background",
       heroGlow:
@@ -133,7 +134,7 @@ export function SubscriptionWelcomeHome() {
   const nextSteps = getNextSteps(reason, isOwner, canAccessBilling);
 
   return (
-    <DashboardPageShell className="max-w-5xl">
+    <DashboardPageShell className="flex min-h-[calc(100svh-9rem)] max-w-7xl flex-col justify-center py-8">
       <header className="mb-6">
         <p className="text-sm font-medium text-muted-foreground">
           {pharmacyName ? pharmacyName : "Your pharmacy"}
@@ -282,9 +283,9 @@ export function SubscriptionWelcomeHome() {
             accentClass={theme.ctaPrimary}
           />
           <QuickActionCard
-            href={BILLING_ROUTE}
-            title="See what unlocks"
-            description="Review what each plan includes before you renew."
+            href={`${BILLING_ROUTE}?tab=upgrade`}
+            title="Browse plans"
+            description="Compare main plans and choose what should unlock next."
             cta="Browse plans"
           />
         </div>

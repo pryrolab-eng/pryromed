@@ -44,9 +44,17 @@ export type UpdateCustomerInput = {
   status?: "active" | "inactive";
 };
 
+export type PaginatedCustomersList = {
+  rows: CustomerRow[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export const customersKeys = {
   all: ["customers"] as const,
-  list: () => [...customersKeys.all, "list"] as const,
+  list: (page?: number, limit?: number) =>
+    [...customersKeys.all, "list", page ?? 1, limit ?? 50] as const,
   detail: (id: string) => [...customersKeys.all, "detail", id] as const,
   search: (q: string) => [...customersKeys.all, "search", q] as const,
   combined: () => [...customersKeys.all, "combined"] as const,
@@ -62,12 +70,22 @@ export async function getCombinedCustomersData(): Promise<CombinedCustomersData>
   return fetchJson<CombinedCustomersData>("/api/customers/combined");
 }
 
-export async function getCustomers(): Promise<CustomerRow[]> {
+export async function getCustomers(
+  page?: number,
+  limit?: number,
+): Promise<PaginatedCustomersList> {
   try {
-    const data = await fetchJson<CustomerRow[]>("/api/customers");
-    return Array.isArray(data) ? data : [];
+    const params = new URLSearchParams();
+    if (page) params.set("page", String(page));
+    if (limit) params.set("limit", String(limit));
+    const url = params.toString() ? `/api/customers?${params}` : "/api/customers";
+    const data = await fetchJson<PaginatedCustomersList | CustomerRow[]>(url);
+    if (Array.isArray(data)) {
+      return { rows: data, total: data.length, page: 1, limit: data.length || 50 };
+    }
+    return data ?? { rows: [], total: 0, page: 1, limit: 50 };
   } catch {
-    return [];
+    return { rows: [], total: 0, page: 1, limit: 50 };
   }
 }
 

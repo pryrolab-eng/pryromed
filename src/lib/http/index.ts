@@ -234,17 +234,20 @@ export { getPolarConfig, getPolarCheckoutStatus, polarKeys } from "./polar";
 export { validatePhoneNumber, type PhoneValidationResult } from "./validation";
 export {
   cancelScheduledChange,
+  cancelSubscription,
   createPendingBranchAddon,
   createPendingSubscription,
   getPlanLimits,
   getScheduledChange,
   getSubscriptionStatus,
+  renewSubscription,
   scheduleSubscriptionDowngrade,
   startPolarSubscriptionCheckout,
   subscriptionKeys,
   upgradeSubscription,
   type PaidCheckoutContext,
   type ScheduledChangeResponse,
+  type SubscriptionUpgradeResponse,
 } from "./subscription";
 export {
   getPharmacistActivities,
