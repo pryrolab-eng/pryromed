@@ -199,11 +199,15 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
   const createCategoryMutation = useCreateInventoryCategoryMutation()
 
   const localInventory = useMemo(
-    () => (combinedQuery.data?.inventory ?? []).map(toInventoryItem),
+    () =>
+      (Array.isArray(combinedQuery.data?.inventory)
+        ? combinedQuery.data.inventory
+        : []
+      ).map(toInventoryItem),
     [combinedQuery.data?.inventory],
   )
-  const categories = (categoriesQuery.data ?? []) as CategoryCatalogItem[]
-  const suppliers = (suppliersQuery.data ?? []).map((s) => ({
+  const categories = (Array.isArray(categoriesQuery.data) ? categoriesQuery.data : []) as CategoryCatalogItem[]
+  const suppliers = (Array.isArray(suppliersQuery.data) ? suppliersQuery.data : []).map((s) => ({
     id: s.id,
     name: s.name,
   }))
