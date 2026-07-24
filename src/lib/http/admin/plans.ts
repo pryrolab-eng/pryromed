@@ -85,3 +85,40 @@ export async function updateAdminPlan(
   ensureApiSuccess(data, "Failed to update plan");
   return data;
 }
+
+export type PolarProductItem = {
+  id: string;
+  name: string;
+  isArchived: boolean;
+  description?: string;
+};
+
+export async function listPolarProducts(): Promise<PolarProductItem[]> {
+  const data = await fetchJson<{ products: PolarProductItem[] }>("/api/admin/polar/products");
+  return data.products ?? [];
+}
+
+export type SyncPlanToPolarResponse = {
+  success: boolean;
+  polarProductId: string | null;
+  action: "linked" | "created" | "updated" | "recreated" | "skipped";
+  planId: string;
+  planName: string;
+  message?: string;
+  error?: string;
+};
+
+export async function syncPlanToPolarApi(
+  planId: string,
+  polarProductId?: string,
+): Promise<SyncPlanToPolarResponse> {
+  const data = await fetchJson<SyncPlanToPolarResponse>(
+    `/api/admin/polar/sync-plan/${planId}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ polarProductId }),
+    },
+  );
+  return data;
+}

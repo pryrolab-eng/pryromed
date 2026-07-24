@@ -49,7 +49,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { AnimatePresence, motion } from "motion/react";
 import { formatMoney } from "@/lib/platform-currency";
 import { useAdminPlans } from '@/hooks/useAdminPlans'
-import { createAdminPlan, updateAdminPlan, type AdminSubscriptionPlanRow } from '@/lib/http/admin/plans'
+import { createAdminPlan, updateAdminPlan, type AdminSubscriptionPlanRow, listPolarProducts, syncPlanToPolarApi, type PolarProductItem } from '@/lib/http/admin/plans'
 import { invalidateAllPlanCaches } from '@/lib/query/invalidate-plan-caches'
 import { PlanFeatureMatrix } from '@/components/admin/plan-feature-matrix'
 import { PlanLimitFields } from '@/components/admin/plan-limit-fields'
@@ -155,6 +155,12 @@ export function AdminSubscriptionsPanel() {
   const [isAddingPlanLoading, setIsAddingPlanLoading] = useState(false)
   const [isSavingPlan, setIsSavingPlan] = useState(false)
   const [togglingPlanId, setTogglingPlanId] = useState<string | null>(null)
+
+  // Polar sync state
+  const [polarProducts, setPolarProducts] = useState<PolarProductItem[]>([])
+  const [isPolarLoading, setIsPolarLoading] = useState(false)
+  const [selectedPolarProductId, setSelectedPolarProductId] = useState('')
+  const [isSyncingPolar, setIsSyncingPolar] = useState(false)
 
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedbackTitle, setFeedbackTitle] = useState('')
@@ -305,7 +311,16 @@ export function AdminSubscriptionsPanel() {
           })
           setSelectedPlan({ ...p, ...aligned })
           setEditPlanPrice(String(plan.price))
+          setSelectedPolarProductId('')
           setIsEditingPlan(true)
+          // Pre-fetch Polar products when dialog opens
+          if (!isPolarLoading && polarProducts.length === 0) {
+            setIsPolarLoading(true)
+            listPolarProducts()
+              .then(setPolarProducts)
+              .catch(() => {})
+              .finally(() => setIsPolarLoading(false))
+          }
         },
         onToggleActive: (plan, active) =>
           handleTogglePlanActive(plan as PlanCard, active),
@@ -810,17 +825,100 @@ export function AdminSubscriptionsPanel() {
                       }
                     />
                   </div>
-                  {selectedPlan.polar_product_id ? (
-                    <p className="text-xs text-muted-foreground rounded-md border px-3 py-2">
-                      Polar product (auto-synced):{' '}
-                      <code className="text-[10px] break-all">{selectedPlan.polar_product_id}</code>
+                  {/* Polar Product Sync Section */}
+                  <div className="grid gap-2 rounded-lg border border-neutral-200/80 bg-neutral-50/50 p-3 dark:border-neutral-800 dark:bg-neutral-900/30">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                        Polar Card Payment Product
+                      </Label>
+                      {selectedPlan.polar_product_id && (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                          ✓ Linked
+                        </span>
+                      )}
+                    </div>
+
+                    {selectedPlan.polar_product_id ? (
+                      <p className="break-all rounded border bg-white px-2 py-1.5 font-mono text-[10px] text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900">
+                        {selectedPlan.polar_product_id}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        ⚠ No Polar product linked — card checkout will fail for this plan.
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={selectedPolarProductId}
+                        onValueChange={setSelectedPolarProductId}
+                        disabled={isPolarLoading || isSyncingPolar}
+                      >
+                        <SelectTrigger className="h-8 flex-1 text-xs">
+                          <SelectValue placeholder={
+                            isPolarLoading ? 'Loading Polar products…' : 'Pick an existing Polar product'
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {polarProducts.filter((p) => !p.isArchived).map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                          {polarProducts.length === 0 && !isPolarLoading && (
+                            <SelectItem value="__none" disabled>
+                              No active products found
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+
+                      <DashboardButton
+                        tone="outline"
+                        className="h-8 shrink-0 text-xs"
+                        disabled={isSyncingPolar || (!selectedPolarProductId && Number(selectedPlan.price) <= 0)}
+                        onClick={async () => {
+                          if (!selectedPlan) return
+                          setIsSyncingPolar(true)
+                          try {
+                            const result = await syncPlanToPolarApi(
+                              selectedPlan.id,
+                              selectedPolarProductId || undefined,
+                            )
+                            if (result.polarProductId) {
+                              setSelectedPlan({ ...selectedPlan, polar_product_id: result.polarProductId })
+                              await invalidateAllPlanCaches(queryClient)
+                              showFeedback(
+                                'Polar synced',
+                                `${result.planName} is now linked to Polar product (${result.action}).`,
+                                'success',
+                              )
+                            } else {
+                              showFeedback('Sync skipped', result.message ?? 'No changes made.', 'warning')
+                            }
+                            setSelectedPolarProductId('')
+                          } catch (err) {
+                            showFeedback('Polar sync failed', err instanceof Error ? err.message : 'Unknown error', 'error')
+                          } finally {
+                            setIsSyncingPolar(false)
+                          }
+                        }}
+                      >
+                        {isSyncingPolar ? (
+                          <><Spinner className="mr-1 size-3" /> Syncing…</>
+                        ) : selectedPolarProductId ? (
+                          'Link selected'
+                        ) : (
+                          'Auto-sync'
+                        )}
+                      </DashboardButton>
+                    </div>
+
+                    <p className="text-[10px] text-muted-foreground">
+                      Pick an existing Polar product to link, or click Auto-sync to create/update one automatically.
                     </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Paid plans sync to Polar when you save. Renaming the plan
-                      updates the Polar product title on the next save or sync.
-                    </p>
-                  )}
+                  </div>
+
                   <div className="flex items-center justify-between rounded-lg border border-neutral-200/80 bg-neutral-50/80 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900/40">
                     <Label htmlFor="edit-plan-active" className="cursor-pointer">
                       Active (visible in onboarding and upgrades)
