@@ -52,17 +52,35 @@ async function setCookieValue(name: string, value: string) {
 
 async function clearCookie(name: string) {
   const store = await cookies();
-  store.set(name, "", { path: "/", maxAge: 0 });
+  const isProduction = process.env.NODE_ENV === "production";
+  try {
+    store.delete(name);
+  } catch {}
+  store.set(name, "", {
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProduction,
+  });
 }
 
 async function forwardSessionCookies(res: Response) {
-  const cookieHeader = res.headers.get("set-cookie");
-  if (!cookieHeader) return;
-  const names = /(?:^|,\s*)((?:__Secure-)?pryrox_(?:session|refresh))=([^;,]+)/g;
-  for (const match of Array.from(cookieHeader.matchAll(names))) {
-    const [, name, value] = match;
-    if (name && value) {
-      await setCookieValue(name, value);
+  const headersList =
+    typeof res.headers.getSetCookie === "function"
+      ? res.headers.getSetCookie()
+      : [res.headers.get("set-cookie")].filter((h): h is string => Boolean(h));
+
+  for (const header of headersList) {
+    const matches = Array.from(
+      header.matchAll(/(?:^|,\s*)((?:__Secure-)?pryrox_(?:session|refresh))=([^;,]+)/g),
+    );
+    for (const match of matches) {
+      const [, name, value] = match;
+      if (name && value) {
+        await setCookieValue(name, value);
+      }
     }
   }
 }
@@ -71,6 +89,14 @@ export const signInAction = async (_prevState: SignInFormState, formData: FormDa
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const trimmedEmail = email.trim();
+
+  // Clear any existing stale session cookies before signing in as a new user
+  await Promise.all([
+    clearCookie("pryrox_session"),
+    clearCookie("pryrox_refresh"),
+    clearCookie("__Secure-pryrox_session"),
+    clearCookie("__Secure-pryrox_refresh"),
+  ]);
 
   const { ok, data, res } = await api("/api/auth/sign-in", {
     method: "POST",
