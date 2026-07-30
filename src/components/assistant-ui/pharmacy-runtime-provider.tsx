@@ -75,7 +75,14 @@ function useAiChatAdapter(
           const errorMsg = error.error ?? `HTTP ${response.status}`;
           
           // Detect upgrade required errors and show dialog instead
-          if (errorMsg.includes("requires a plan that includes this feature") || errorMsg.includes("requires a paid plan")) {
+          if (
+            error.code === "feature_not_in_plan" ||
+            error.code === "subscription_inactive" ||
+            errorMsg.includes("requires a plan that includes this feature") ||
+            errorMsg.includes("requires a paid plan") ||
+            errorMsg.includes("not included in your plan") ||
+            errorMsg.includes("Active subscription required")
+          ) {
             setUpgradeDialogOpen(true);
             yield {
               content: [{ type: "text", text: "This feature requires a subscription upgrade." }],

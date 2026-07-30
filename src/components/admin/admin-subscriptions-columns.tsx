@@ -13,6 +13,8 @@ export type SubscriptionPlanTableRow = {
   id: string;
   name: string;
   price: number;
+  yearly_price: number | null;
+  yearly_discount_pct: number;
   period: string;
   billing_period: string;
   billing_cadence: "monthly" | "yearly";

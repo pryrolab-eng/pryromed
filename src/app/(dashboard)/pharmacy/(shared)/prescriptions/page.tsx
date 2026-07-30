@@ -319,6 +319,27 @@ export default function PrescriptionsPage() {
     return <DashboardPageLoading label="Loading prescriptions…" />
   }
 
+  if (prescriptionsQuery.isError) {
+    return (
+      <DashboardPageShell>
+        <DashboardPageHeader
+          title="Prescriptions"
+          description="Clinical Rx queue — verify, prepare, and dispense before or at POS"
+        />
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          Could not load prescriptions.{" "}
+          <button
+            type="button"
+            className="font-medium underline underline-offset-2"
+            onClick={() => void prescriptionsQuery.refetch()}
+          >
+            Retry
+          </button>
+        </div>
+      </DashboardPageShell>
+    )
+  }
+
   return (
     <DashboardPageShell>
       <DashboardPageHeader

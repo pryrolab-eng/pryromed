@@ -6,6 +6,8 @@ export type AdminSubscriptionPlanRow = Record<string, unknown> & {
   id: string;
   name: string;
   price?: number | string;
+  yearly_price?: number | string | null;
+  yearly_discount_pct?: number | string | null;
   period?: string;
   features?: unknown;
   feature_keys?: string[];

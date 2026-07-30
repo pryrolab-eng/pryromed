@@ -13,6 +13,16 @@ import { ReactQueryDevtools as ReactQueryDevtoolsBase } from "@tanstack/react-qu
 
 const CACHE_KEY = "rq:persist";
 const MAX_CACHE_SIZE = 4 * 1024 * 1024; // 4MB — leave room for other localStorage entries
+const NON_PERSISTED_QUERY_PREFIXES = [
+  "dashboard",
+  "pharmacyDashboard",
+  "inventory",
+  "sales",
+  "customers",
+  "reports",
+  "prescriptions",
+  "pos",
+] as const;
 
 function createLocalStoragePersister(): Persister {
   return {
@@ -73,6 +83,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             return (
               typeof key === "string" &&
               !key.startsWith("admin") &&
+              !NON_PERSISTED_QUERY_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
               q.state.status === "success"
             );
           },

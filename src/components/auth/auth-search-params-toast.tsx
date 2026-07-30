@@ -1,7 +1,7 @@
 "use client";
 
-import { startTransition, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { isEmailNotConfirmedMessage } from "@/lib/auth/email-not-confirmed";
 import {
@@ -18,16 +18,20 @@ const AUTH_ERROR_LABELS: Record<string, string> = {
 };
 
 function resolveErrorMessage(raw: string) {
-    if (isEmailNotConfirmedMessage(raw)) {
+  if (isEmailNotConfirmedMessage(raw)) {
     return "Please confirm your email before signing in. Use Resend email in this notification.";
   }
   return AUTH_ERROR_LABELS[raw] ?? decodeURIComponent(raw);
 }
 
+function replaceUrlQuietly(pathname: string, query: string) {
+  const href = query ? `${pathname}?${query}` : pathname;
+  window.history.replaceState(window.history.state, "", href);
+}
+
 /** Shows ?error= and ?success= from auth redirects as Sonner toasts, then cleans the URL. */
 export function AuthSearchParamsToast() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const pathname = usePathname();
   const shown = useRef<string | null>(null);
 
@@ -65,13 +69,10 @@ export function AuthSearchParamsToast() {
     );
     params.delete("error");
     params.delete("success");
-    const query = params.toString();
-    startTransition(() => {
-      router.replace(query ? `${pathname}?${query}` : pathname, {
-        scroll: false,
-      });
-    });
-  }, [pathname, router, searchParams]);
+    // History API — avoid router.replace before App Router action queue is ready
+    // (Next 16: "Router action dispatched before initialization").
+    replaceUrlQuietly(pathname, params.toString());
+  }, [pathname, searchParams]);
 
   return null;
 }

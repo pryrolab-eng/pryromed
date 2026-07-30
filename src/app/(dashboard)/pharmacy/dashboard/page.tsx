@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -8,6 +9,7 @@ import {
   type PharmacyDashboardStats,
 } from '@/hooks/usePharmacyDashboard'
 import { useCreatePharmacistMutation } from '@/hooks/useCreatePharmacist'
+import { ApiError } from '@/lib/http/client'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -72,6 +74,7 @@ export default function PharmacyDashboard() {
 }
 
 function PharmacyDashboardContent() {
+  const router = useRouter()
   const { branchScope, setBranchScope, scopeQuery, days } = useBranchReportScope()
 
   const combinedQuery = useCombinedPharmacyDashboard({
@@ -168,7 +171,15 @@ function PharmacyDashboardContent() {
         })
       }
     } catch (error) {
-      toast.error('Could not add pharmacist', {
+      const isEmailRejected =
+        error instanceof ApiError &&
+        (error.status === 409 ||
+          (error.body &&
+            typeof error.body === 'object' &&
+            'code' in error.body &&
+            (error.body as { code?: string }).code === 'email_unavailable'))
+
+      toast.error(isEmailRejected ? "Can't use this email" : 'Could not add pharmacist', {
         description: error instanceof Error ? error.message : 'Unknown error',
       })
     }
@@ -286,7 +297,7 @@ function PharmacyDashboardContent() {
           </Dialog>
           <DashboardButton
             tone="primary"
-            onClick={() => { window.location.href = PHARMACY_ROUTES.pos }}
+            onClick={() => router.push(PHARMACY_ROUTES.pos)}
           >
             <ShoppingCart className="h-4 w-4" />
             New sale
@@ -294,6 +305,19 @@ function PharmacyDashboardContent() {
           </DashboardToolbar>
         }
       />
+
+      {combinedQuery.isError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          Could not load dashboard data.{" "}
+          <button
+            type="button"
+            className="font-medium underline underline-offset-2"
+            onClick={() => void combinedQuery.refetch()}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <DashboardMetricGrid columns={5}>
         <DashboardStatCard
@@ -349,9 +373,9 @@ function PharmacyDashboardContent() {
               title="Recent sales"
               action={
                 <DashboardButton tone="ghost" asChild>
-                  <a href={PHARMACY_ROUTES.sales} aria-label="View all sales">
+                  <Link href={PHARMACY_ROUTES.sales} aria-label="View all sales">
                     <Eye className="h-4 w-4" />
-                  </a>
+                  </Link>
                 </DashboardButton>
               }
             >

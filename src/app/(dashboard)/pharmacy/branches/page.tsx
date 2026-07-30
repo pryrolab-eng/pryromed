@@ -1,6 +1,7 @@
 'use client'
 
 import { PHARMACY_ROUTES } from '@/lib/routes/pharmacy-paths'
+import { useRouter } from 'next/navigation'
 
 import { useMemo, useState, useCallback } from 'react'
 import { toast } from 'sonner'
@@ -46,6 +47,7 @@ import { branchStats } from '@/lib/branches/branch-usage'
 import type { CreateSaasBranchInput } from '@/lib/http/saas-branches'
 
 export default function BranchesPage() {
+  const router = useRouter()
   const branchesQuery = useSaasBranches()
   const subQuery = useSaasSubscription()
   const plansQuery = useSaasPlans()
@@ -305,7 +307,7 @@ export default function BranchesPage() {
                 if (addonPlans.length > 0) {
                   setAddonCheckoutOpen(true)
                 } else {
-                  window.location.href = PHARMACY_ROUTES.billing
+                  router.push(PHARMACY_ROUTES.billing)
                 }
               }}
             />

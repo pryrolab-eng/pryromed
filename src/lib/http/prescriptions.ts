@@ -27,12 +27,8 @@ export type CreatePrescriptionInput = {
 };
 
 export async function getPrescriptions(): Promise<PrescriptionRow[]> {
-  try {
-    const data = await fetchJson<PrescriptionRow[]>("/api/prescriptions");
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await fetchJson<PrescriptionRow[]>("/api/prescriptions");
+  return Array.isArray(data) ? data : [];
 }
 
 export async function createPrescription(body: CreatePrescriptionInput) {

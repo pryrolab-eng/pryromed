@@ -45,58 +45,31 @@ export const pharmacistDashboardKeys = {
   stockAlerts: () => [...pharmacistDashboardKeys.all, "stock-alerts"] as const,
 };
 
-const EMPTY_STATS: PharmacistStats = {
-  prescriptionsToday: 0,
-  customersServed: 0,
-  averageWaitTime: 0,
-  completedSales: 0,
-  pendingPrescriptions: 0,
-  consultationsGiven: 0,
-  inventoryChecks: 0,
-  alertsHandled: 0,
-};
-
 export async function getPharmacistDashboardStats(): Promise<PharmacistStats> {
-  try {
-    return await fetchJson<PharmacistStats>("/api/pharmacist/dashboard");
-  } catch {
-    return EMPTY_STATS;
-  }
+  return fetchJson<PharmacistStats>("/api/pharmacist/dashboard");
 }
 
 export async function getPharmacistActivities(): Promise<PharmacistActivity[]> {
-  try {
-    const data = await fetchJson<PharmacistActivity[]>(
-      "/api/pharmacist/activities",
-    );
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await fetchJson<PharmacistActivity[]>(
+    "/api/pharmacist/activities",
+  );
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getPharmacistChartData(): Promise<PharmacistChartPoint[]> {
-  try {
-    const data = await fetchJson<PharmacistChartPoint[]>(
-      "/api/pharmacist/chart-data",
-    );
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await fetchJson<PharmacistChartPoint[]>(
+    "/api/pharmacist/chart-data",
+  );
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getPharmacistPrescriptions(): Promise<
   PendingPrescription[]
 > {
-  try {
-    const data = await fetchJson<PendingPrescription[]>(
-      "/api/pharmacist/prescriptions",
-    );
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await fetchJson<PendingPrescription[]>(
+    "/api/pharmacist/prescriptions",
+  );
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getPharmacistStockAlerts(): Promise<StockAlertsResponse> {

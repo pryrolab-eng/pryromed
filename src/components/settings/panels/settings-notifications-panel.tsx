@@ -77,30 +77,21 @@ export function SettingsNotificationsPanel() {
             },
             {
               id: "low",
-              label: "Low stock alert",
+              label: "Low / out-of-stock alerts",
               checked: notifyPrefs.lowStock,
               onChange: (c) => patch("lowStock", c),
             },
             {
               id: "expiry",
-              label: "Medication nearing expiry",
+              label: "Expiring or expired medication",
               checked: notifyPrefs.expiry,
               onChange: (c) => patch("expiry", c),
             },
           ]}
         />
         <SettingsRow
-          title="Mobile push notifications"
-          description="Alerts on your phone when the app supports push"
-        >
-          <Switch
-            checked={notifyPrefs.push}
-            onCheckedChange={(c) => patch("push", c)}
-          />
-        </SettingsRow>
-        <SettingsRow
           title="Desktop notification"
-          description="Browser notifications while Pryrox is open"
+          description="In-app alerts in the notification bell"
         >
           <Switch
             checked={notifyPrefs.desktop}
@@ -109,7 +100,7 @@ export function SettingsNotificationsPanel() {
         </SettingsRow>
         <SettingsRow
           title="Email notification"
-          description="Summaries and alerts to your pharmacy email"
+          description="Inventory, renewal, and system alerts by email"
         >
           <Switch
             checked={notifyPrefs.email}
@@ -172,8 +163,8 @@ export function SettingsNotificationsPanel() {
 
       <SettingsSection title="Reports & system">
         <SettingsRow
-          title="Sales reports"
-          description="Daily and weekly sales summaries"
+          title="Sales notifications"
+          description="Notify when a POS sale completes (can be noisy)"
         >
           <Switch
             checked={notifyPrefs.salesReports}

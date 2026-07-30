@@ -7,7 +7,11 @@ export const PLATFORM_ADMIN_EVENT = {
   maintenanceQueued: "platform.maintenance",
 } as const;
 
-/** In-app (and optional email) alerts for platform admins — pharmacy_id is always null. */
+/**
+ * @deprecated Prefer Nest producers (onboarding / polar / admin maintenance)
+ * which write `notification_outbox` with `pharmacy_id: null`.
+ * Kept for rare client-side admin tooling; creates a pharmacy-scoped row only.
+ */
 export async function emitPlatformAdminNotification(input: {
   eventType: string;
   title: string;

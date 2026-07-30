@@ -64,36 +64,14 @@ export type SalesAnalytics = {
   topCategories: Array<{ name: string; value: number; color: string }>;
 };
 
-const EMPTY_ANALYTICS: SalesAnalytics = {
-  weeklySales: [],
-  paymentBreakdown: [],
-  hourlySales: [],
-  monthlyComparison: [],
-  customerDistribution: [],
-  topCategories: [],
-};
-
-const EMPTY_LIST: SalesListResponse = {
-  sales: [],
-  stats: { todayTotal: 0, weekTotal: 0, monthTotal: 0, totalSales: 0 },
-};
-
 export async function getSalesList(
   params?: SalesListParams,
 ): Promise<SalesListResponse> {
-  try {
-    return await fetchJson<SalesListResponse>(
-      `/api/sales${buildSalesListQueryString(params ?? {})}`,
-    );
-  } catch {
-    return EMPTY_LIST;
-  }
+  return fetchJson<SalesListResponse>(
+    `/api/sales${buildSalesListQueryString(params ?? {})}`,
+  );
 }
 
 export async function getSalesAnalytics(): Promise<SalesAnalytics> {
-  try {
-    return await fetchJson<SalesAnalytics>("/api/sales/analytics");
-  } catch {
-    return EMPTY_ANALYTICS;
-  }
+  return fetchJson<SalesAnalytics>("/api/sales/analytics");
 }

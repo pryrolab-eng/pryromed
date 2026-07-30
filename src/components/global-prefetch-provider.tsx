@@ -6,98 +6,55 @@ import {
   pharmacyDashboardKeys,
   getCombinedDashboardData,
 } from "@/lib/http/pharmacy-dashboard";
-import { inventoryKeys, getCombinedInventoryData } from "@/lib/http/inventory";
-import { salesKeys, getCombinedSalesData } from "@/lib/http/sales";
-import { customersKeys, getCombinedCustomersData } from "@/lib/http/customers";
-import { prescriptionsKeys, getPrescriptions } from "@/lib/http/prescriptions";
-import {
-  saasKeys,
-  getSaasPlans,
-  getSaasSubscriptionSummary,
-} from "@/lib/http/saas";
 import { useBranchReportScope } from "@/hooks/useBranchReportScope";
+import { usePathname } from "next/navigation";
 
 const PREFETCH_STALE_MS = 10 * 60 * 1000;
 
 export function GlobalPrefetchProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { scopeQuery, days } = useBranchReportScope();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Stagger cross-page prefetch to avoid saturating the network on slow connections.
-    const prefetchAll = async () => {
-      const prefetches = [
-        () =>
-          queryClient.prefetchQuery({
-            queryKey: pharmacyDashboardKeys.combined(
-              scopeQuery?.branchId,
-              days,
-            ),
-            queryFn: () =>
-              getCombinedDashboardData({
-                ...scopeQuery,
-                branchId: scopeQuery?.branchId,
-              }),
-            staleTime: PREFETCH_STALE_MS,
-          }),
-        () =>
-          queryClient.prefetchQuery({
-            queryKey: inventoryKeys.combined(scopeQuery?.branchId),
-            queryFn: () => getCombinedInventoryData(scopeQuery?.branchId),
-            staleTime: PREFETCH_STALE_MS,
-          }),
-        () =>
-          queryClient.prefetchQuery({
-            queryKey: salesKeys.combined(),
-            queryFn: getCombinedSalesData,
-            staleTime: PREFETCH_STALE_MS,
-          }),
-        () =>
-          queryClient.prefetchQuery({
-            queryKey: customersKeys.combined(),
-            queryFn: getCombinedCustomersData,
-            staleTime: PREFETCH_STALE_MS,
-          }),
-        () =>
-          queryClient.prefetchQuery({
-            queryKey: prescriptionsKeys.list(),
-            queryFn: getPrescriptions,
-            staleTime: PREFETCH_STALE_MS,
-          }),
-        () =>
-          queryClient.prefetchQuery({
-            queryKey: saasKeys.subscription(),
-            queryFn: getSaasSubscriptionSummary,
-            staleTime: PREFETCH_STALE_MS,
-          }),
-        () =>
-          queryClient.prefetchQuery({
-            queryKey: saasKeys.plans(),
-            queryFn: getSaasPlans,
-            staleTime: PREFETCH_STALE_MS,
-          }),
-      ];
+    const onDashboardRoute = pathname?.startsWith("/pharmacy/dashboard");
+    if (!onDashboardRoute) return;
 
-      // Fire first 2 immediately, then stagger the rest
-      await Promise.allSettled([prefetches[0](), prefetches[1]()]);
-      for (let i = 2; i < prefetches.length; i++) {
-        await new Promise((r) => setTimeout(r, 300));
-        await prefetches[i]();
+    const connection = (
+      navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
       }
+    ).connection as { saveData?: boolean; effectiveType?: string } | undefined;
+    if (connection?.saveData) return;
+    if (connection?.effectiveType && /2g/.test(connection.effectiveType)) return;
+
+    const prefetchDashboard = async () => {
+      await queryClient.prefetchQuery({
+        queryKey: pharmacyDashboardKeys.combined(scopeQuery?.branchId, days),
+        queryFn: () =>
+          getCombinedDashboardData({
+            ...scopeQuery,
+            branchId: scopeQuery?.branchId,
+          }),
+        staleTime: PREFETCH_STALE_MS,
+      });
     };
 
     if (typeof window.requestIdleCallback === "function") {
-      const id = window.requestIdleCallback(() => {
-        void prefetchAll();
-      }, { timeout: 5000 });
+      const id = window.requestIdleCallback(
+        () => {
+          void prefetchDashboard();
+        },
+        { timeout: 5000 },
+      );
       return () => window.cancelIdleCallback(id);
     }
 
     const timer = window.setTimeout(() => {
-      void prefetchAll();
+      void prefetchDashboard();
     }, 2000);
     return () => window.clearTimeout(timer);
-  }, [queryClient, scopeQuery, days]);
+  }, [queryClient, scopeQuery, days, pathname]);
 
   return <>{children}</>;
 }

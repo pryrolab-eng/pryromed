@@ -67,6 +67,8 @@ type PlanRow = {
   features: string[] | null;
   is_popular?: boolean | null;
   currency?: string;
+  yearly_price?: number | null;
+  yearly_discount_pct?: number | null;
 };
 
 type PharmacySnapshot = {
@@ -98,7 +100,17 @@ function newInviteRow(): TeamInviteRow {
 function displayPrice(plan: PlanRow, annual: boolean) {
   const monthly = Number(plan.price);
   if (!annual || monthly === 0) return monthly;
-  return Math.round(monthly * 12 * 0.8);
+  if (plan.yearly_price) return Number(plan.yearly_price);
+  const discountPct =
+    typeof plan.yearly_discount_pct === "number" &&
+    Number.isFinite(plan.yearly_discount_pct) &&
+    plan.yearly_discount_pct > 0
+      ? plan.yearly_discount_pct
+      : null;
+  if (discountPct !== null) {
+    return Math.round(monthly * 12 * (1 - discountPct / 100));
+  }
+  return Math.round(monthly * 12);
 }
 
 function periodLabel(plan: PlanRow, annual: boolean) {

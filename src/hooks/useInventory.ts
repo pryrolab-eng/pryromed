@@ -46,11 +46,18 @@ function invalidateInventory(queryClient: ReturnType<typeof useQueryClient>, _br
   ]);
 }
 
-export function useInventoryList(options?: { enabled?: boolean; branchId?: string | null; page?: number; limit?: number }) {
-  const { branchId, page = 1, limit = 50 } = options ?? {};
+export function useInventoryList(options?: {
+  enabled?: boolean;
+  branchId?: string | null;
+  page?: number;
+  limit?: number;
+  q?: string;
+  category?: string;
+}) {
+  const { branchId, page = 1, limit = 50, q, category } = options ?? {};
   return useQuery({
-    queryKey: inventoryKeys.list(branchId, page, limit),
-    queryFn: () => getInventoryList(branchId, page, limit),
+    queryKey: inventoryKeys.list(branchId, page, limit, q, category),
+    queryFn: () => getInventoryList(branchId, page, limit, { q, category }),
     enabled: options?.enabled ?? true,
     staleTime: SEARCH_LIST_STALE_MS,
   });
@@ -187,10 +194,22 @@ const COMBINED_GC_MS = 30 * 60 * 1000;
 export function useCombinedInventory(options?: {
   enabled?: boolean;
   branchId?: string | null;
+  page?: number;
+  limit?: number;
+  q?: string;
+  category?: string;
 }) {
+  const page = options?.page ?? 1;
+  const limit = options?.limit ?? 50;
+  const q = options?.q?.trim() || undefined;
+  const category =
+    options?.category && options.category !== "all"
+      ? options.category
+      : undefined;
   return useQuery({
-    queryKey: inventoryKeys.combined(options?.branchId),
-    queryFn: () => getCombinedInventoryData(options?.branchId),
+    queryKey: inventoryKeys.combined(options?.branchId, page, limit, q, category),
+    queryFn: () =>
+      getCombinedInventoryData(options?.branchId, page, limit, { q, category }),
     enabled: options?.enabled ?? true,
     staleTime: COMBINED_STALE_MS,
     gcTime: COMBINED_GC_MS,

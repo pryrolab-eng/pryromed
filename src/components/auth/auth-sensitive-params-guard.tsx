@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   hasSensitiveAuthQueryParams,
   stripSensitiveAuthQueryParams,
 } from "@/lib/auth/sensitive-query-params";
 
+function replaceUrlQuietly(pathname: string, query: string) {
+  const href = query ? `${pathname}?${query}` : pathname;
+  window.history.replaceState(window.history.state, "", href);
+}
+
 /** Removes credentials/tokens from the address bar on auth pages. */
 export function AuthSensitiveParamsGuard() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const pathname = usePathname();
   const stripped = useRef(false);
 
@@ -20,9 +24,8 @@ export function AuthSensitiveParamsGuard() {
 
     stripped.current = true;
     const { sanitized } = stripSensitiveAuthQueryParams(searchParams);
-    const query = sanitized.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pathname, router, searchParams]);
+    replaceUrlQuietly(pathname, sanitized.toString());
+  }, [pathname, searchParams]);
 
   return null;
 }

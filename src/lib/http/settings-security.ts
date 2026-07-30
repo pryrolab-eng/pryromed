@@ -23,11 +23,7 @@ export type TwoFaStatus = {
 };
 
 export async function getSecuritySettings(): Promise<SecuritySettings> {
-  try {
-    return await fetchJson<SecuritySettings>("/api/settings/security");
-  } catch {
-    return { ip_whitelist_enabled: false };
-  }
+  return fetchJson<SecuritySettings>("/api/settings/security");
 }
 
 export async function updateSecuritySettings(
@@ -41,11 +37,7 @@ export async function updateSecuritySettings(
 }
 
 export async function getTwoFaStatus(): Promise<TwoFaStatus> {
-  try {
-    return await fetchJson<TwoFaStatus>("/api/settings/security/2fa");
-  } catch {
-    return { enabled: false, platformAllowsTwoFactor: true };
-  }
+  return fetchJson<TwoFaStatus>("/api/settings/security/2fa");
 }
 
 export async function setTwoFaEnabled(enabled: boolean): Promise<void> {
@@ -60,18 +52,14 @@ export async function getIpWhitelist(): Promise<{
   ips: IpWhitelistEntry[];
   currentIp: string | null;
 }> {
-  try {
-    const data = await fetchJson<{
-      ips?: IpWhitelistEntry[];
-      currentIp?: string | null;
-    }>("/api/settings/security/ip-whitelist/manage");
-    return {
-      ips: data.ips ?? [],
-      currentIp: data.currentIp ?? null,
-    };
-  } catch {
-    return { ips: [], currentIp: null };
-  }
+  const data = await fetchJson<{
+    ips?: IpWhitelistEntry[];
+    currentIp?: string | null;
+  }>("/api/settings/security/ip-whitelist/manage");
+  return {
+    ips: data.ips ?? [],
+    currentIp: data.currentIp ?? null,
+  };
 }
 
 export async function addIpWhitelistEntry(body: {

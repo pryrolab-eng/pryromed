@@ -186,7 +186,6 @@ function POSPageContent() {
   const loading =
     isContextHydrating ||
     productsQuery.isPending ||
-    fastMovingQuery.isPending ||
     categoriesQuery.isPending
 
   useAiPageContext('pos', createPosPageContext({
@@ -1223,7 +1222,7 @@ function POSPageContent() {
                 setTxBlocked(null)
                 return
               }
-              window.location.href = PHARMACY_ROUTES.billing
+              router.push(PHARMACY_ROUTES.billing)
             }}
             confirmTone={txBlocked?.reason === 'check_failed' ? 'primary' : 'destructive'}
           />

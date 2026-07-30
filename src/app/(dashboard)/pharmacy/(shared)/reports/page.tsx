@@ -236,11 +236,11 @@ function ReportsPageInner() {
         }
         actions={
           <DashboardToolbar>
-            <DashboardButton onClick={() => exportReportsPdf(reportsData, inventoryData, { startDate, endDate })}>
+            <DashboardButton onClick={() => void exportReportsPdf(reportsData, inventoryData, { startDate, endDate })}>
               <Download className="h-4 w-4" />
               PDF
             </DashboardButton>
-            <DashboardButton onClick={() => exportReportsExcel(reportsData, inventoryData)}>
+            <DashboardButton onClick={() => void exportReportsExcel(reportsData, inventoryData)}>
               <FileSpreadsheet className="h-4 w-4" />
               Excel
             </DashboardButton>

@@ -1,7 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
-
 interface DailySale {
   date: string;
   sales?: number;
@@ -40,11 +36,15 @@ function formatDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function exportReportsPdf(
+export async function exportReportsPdf(
   reportsData: ReportsData,
   inventoryData: InventoryAlert[],
   opts: { title?: string; startDate?: string; endDate?: string } = {},
 ) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 15;
@@ -84,7 +84,9 @@ export function exportReportsPdf(
     theme: "grid",
     headStyles: { fillColor: [59, 130, 246] },
   });
-  y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  y =
+    (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+      .finalY + 10;
 
   if (reportsData.dailySales.length > 0) {
     doc.setFontSize(13);
@@ -101,7 +103,9 @@ export function exportReportsPdf(
       theme: "grid",
       headStyles: { fillColor: [59, 130, 246] },
     });
-    y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y =
+      (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+        .finalY + 10;
   }
 
   if (reportsData.topProducts.length > 0) {
@@ -119,7 +123,9 @@ export function exportReportsPdf(
       theme: "grid",
       headStyles: { fillColor: [59, 130, 246] },
     });
-    y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y =
+      (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+        .finalY + 10;
   }
 
   if (reportsData.paymentBreakdown.length > 0) {
@@ -142,11 +148,12 @@ export function exportReportsPdf(
   doc.save(`pharmacy-reports-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-export function exportReportsExcel(
+export async function exportReportsExcel(
   reportsData: ReportsData,
   inventoryData: InventoryAlert[],
   opts: { title?: string } = {},
 ) {
+  const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
 
   const summaryRows: (string | number)[][] = [

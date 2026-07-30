@@ -5,6 +5,8 @@ import { useSearchParams, usePathname } from 'next/navigation'
 import { isHeadquartersBranch } from '@/lib/pharmacy/branch-hq'
 import { CategorySelect } from '@/components/catalog/category-select'
 import type { CategoryCatalogItem } from '@/lib/pharmacy/category-catalog'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { SEARCH_DEBOUNCE_MS } from '@/lib/search/constants'
 import {
   useAddInventoryProductMutation,
   useImportInventoryMutation,
@@ -179,8 +181,30 @@ export default function InventoryPage() {
     return 'inventory'
   }, [searchParams, canInsurance])
 const [activeTab, setActiveTab] = useState(resolvedTab)
-   const combinedQuery = useCombinedInventory({ branchId: activeBranchId })
-  const inventoryQuery = { data: combinedQuery.data?.inventory, isPending: combinedQuery.isPending }
+  const [inventoryPage, setInventoryPage] = useState(1)
+  const [inventoryPageSize, setInventoryPageSize] = useState(20)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), SEARCH_DEBOUNCE_MS)
+  const combinedQuery = useCombinedInventory({
+    branchId: activeBranchId,
+    page: inventoryPage,
+    limit: inventoryPageSize,
+    q: debouncedSearch || undefined,
+    category: selectedCategory,
+  })
+  const inventoryPageData = combinedQuery.data?.inventory
+  const inventoryPaginationState = useMemo(
+    () => ({
+      pageIndex: Math.max(0, inventoryPage - 1),
+      pageSize: inventoryPageSize,
+    }),
+    [inventoryPage, inventoryPageSize],
+  )
+  const inventoryPageCount = Math.max(
+    1,
+    Math.ceil((inventoryPageData?.total ?? 0) / inventoryPageSize),
+  )
   const analyticsQuery = useInventoryAnalytics({
     enabled: activeTab === 'analytics' && showAnalyticsTab,
   })
@@ -199,13 +223,12 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
   const createCategoryMutation = useCreateInventoryCategoryMutation()
 
   const localInventory = useMemo(
-    () =>
-      (Array.isArray(combinedQuery.data?.inventory)
-        ? combinedQuery.data.inventory
-        : []
-      ).map(toInventoryItem),
-    [combinedQuery.data?.inventory],
+    () => (inventoryPageData?.rows ?? []).map(toInventoryItem),
+    [inventoryPageData?.rows],
   )
+  const inventoryTotal = inventoryPageData?.total ?? localInventory.length
+  const lowStockAlerts = combinedQuery.data?.stockAlerts?.lowStock ?? []
+  const expiringAlerts = combinedQuery.data?.stockAlerts?.expiring ?? []
   const categories = (Array.isArray(categoriesQuery.data) ? categoriesQuery.data : []) as CategoryCatalogItem[]
   const suppliers = (Array.isArray(suppliersQuery.data) ? suppliersQuery.data : []).map((s) => ({
     id: s.id,
@@ -224,7 +247,6 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
   const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<InventoryItem | null>(null)
   const [barcodeType, setBarcodeType] = useState('name')
-  const [searchTerm, setSearchTerm] = useState('')
   const [bulkMode, setBulkMode] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false)
@@ -240,7 +262,6 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
   })
   const [isAddingSupplier, setIsAddingSupplier] = useState(false)
   const [newSupplier, setNewSupplier] = useState({ name: '', contact: '', phone: '', email: '' })
-  const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<string | null>(null)
@@ -279,6 +300,10 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
   useEffect(() => {
     setActiveTab(resolvedTab)
   }, [resolvedTab])
+
+  useEffect(() => {
+    setInventoryPage(1)
+  }, [activeBranchId, debouncedSearch, selectedCategory])
 
   useEffect(() => {
     if (searchParams.get('import') !== '1') return
@@ -355,18 +380,8 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
     }
   }
 
-  const filteredInventory = useMemo(() => {
-    const term = searchTerm.toLowerCase()
-    return localInventory.filter((item) => {
-      const matchesSearch =
-        item.name.toLowerCase().includes(term) ||
-        item.category.toLowerCase().includes(term) ||
-        item.batchNumber.toLowerCase().includes(term)
-      const matchesCategory =
-        selectedCategory === 'all' || item.category === selectedCategory
-      return matchesSearch && matchesCategory
-    })
-  }, [localInventory, searchTerm, selectedCategory])
+  // Server already filters by q + category; keep the current page rows as-is.
+  const filteredInventory = localInventory
 
   const filteredInventoryIds = useMemo(
     () => filteredInventory.map((item) => item.id),
@@ -863,13 +878,8 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
     }
   }
 
-  const lowStockCount = localInventory.filter((item) => item.stock <= item.minStock).length
-  const expiringCount = localInventory.filter((item) => {
-    const daysToExpiry = Math.ceil(
-      (new Date(item.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-    )
-    return daysToExpiry <= 60
-  }).length
+  const lowStockCount = lowStockAlerts.length
+  const expiringCount = expiringAlerts.length
   const inventoryValue = localInventory.reduce(
     (sum, item) => sum + item.stock * item.price,
     0,
@@ -878,7 +888,7 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
   useAiPageContext('inventory', createInventoryPageContext({
     route: '/pharmacy/inventory',
     summary: {
-      totalProducts: localInventory.length,
+      totalProducts: inventoryTotal,
       lowStockCount,
       outOfStockCount: localInventory.filter(i => i.stock === 0).length,
       expiringSoonCount: expiringCount,
@@ -1254,7 +1264,7 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
         <DashboardStatCard
           label="Total products"
           icon={Package}
-          value={localInventory.length}
+          value={inventoryTotal}
           hint="Active inventory items"
           loading={combinedQuery.isPending}
         />
@@ -1269,14 +1279,14 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
           label="Expiring soon"
           icon={Calendar}
           value={expiringCount}
-          hint="Within 60 days"
+          hint="Within 30 days"
           loading={combinedQuery.isPending}
         />
         <DashboardStatCard
-          label="Total value"
+          label="Page value"
           icon={TrendingUp}
           value={`${inventoryValue.toLocaleString()} RWF`}
-          hint="Stock on hand"
+          hint="Stock on this page"
           loading={combinedQuery.isPending}
         />
       </DashboardMetricGrid>
@@ -1303,10 +1313,19 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
                 <DashboardSearchInput
                   placeholder="Search products…"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setInventoryPage(1)
+                  }}
                   className="w-full min-w-0 sm:max-w-md sm:flex-1"
                 />
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={(value) => {
+                    setSelectedCategory(value)
+                    setInventoryPage(1)
+                  }}
+                >
                   <SelectTrigger className="h-8 w-full rounded-lg sm:w-40">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -1325,8 +1344,20 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
             data={filteredInventory}
             getRowId={(row) => row.id}
             showIndexColumn={false}
-            pageSize={10}
+            pageSize={inventoryPageSize}
             pageSizeOptions={[10, 20, 50]}
+            manualPagination
+            pageCount={inventoryPageCount}
+            rowCount={inventoryTotal}
+            paginationState={inventoryPaginationState}
+            onPaginationChange={(updater) => {
+              const next =
+                typeof updater === "function"
+                  ? updater(inventoryPaginationState)
+                  : updater
+              setInventoryPage(next.pageIndex + 1)
+              setInventoryPageSize(next.pageSize)
+            }}
             stickyHeader
             initialSorting={[{ id: "name", desc: false }]}
             emptyMessage="No products match your search or filters."
@@ -1354,7 +1385,7 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
             >
               <ScrollArea className="h-64">
                 <div className="space-y-3">
-                  {localInventory.filter((item) => item.stock <= item.minStock).length === 0 ? (
+                  {lowStockAlerts.length === 0 ? (
                     <DashboardPanelEmpty
                       icon={Package}
                       title="No low stock items"
@@ -1362,29 +1393,38 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
                       className="min-h-[200px]"
                     />
                   ) : (
-                    localInventory
-                      .filter((item) => item.stock <= item.minStock)
-                      .map((item) => (
+                    lowStockAlerts.map((raw) => {
+                      const item = raw as {
+                        id: string
+                        name?: string
+                        category?: string
+                        quantity?: number
+                        minimum?: number
+                      }
+                      const stock = Number(item.quantity ?? 0)
+                      const min = Number(item.minimum ?? 0)
+                      return (
                         <DashboardListRow key={item.id} variant="danger">
                           <div className="flex items-center gap-3">
                             <Package className="h-4 w-4 text-red-600" />
                             <div>
-                              <p className="text-sm font-medium">{item.name}</p>
+                              <p className="text-sm font-medium">{item.name ?? "Unknown"}</p>
                               <p className="text-xs text-neutral-500">{item.category}</p>
                             </div>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-red-700">
-                              {item.stock} / {item.minStock}
+                              {stock} / {min}
                             </p>
                             <DashboardProgressTrack
-                              value={(item.stock / Math.max(item.minStock, 1)) * 100}
+                              value={(stock / Math.max(min, 1)) * 100}
                               className="mt-1 w-20"
                               barClassName="bg-red-600"
                             />
                           </div>
                         </DashboardListRow>
-                      ))
+                      )
+                    })
                   )}
                 </div>
               </ScrollArea>
@@ -1392,55 +1432,52 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
 
             <DashboardSectionCard
               title="Expiring items"
-              description="Products expiring within 60 days"
+              description="Products expiring within 30 days"
             >
               <ScrollArea className="h-64">
                 <div className="space-y-3">
-                  {localInventory.filter((item) => {
-                    const daysToExpiry = Math.ceil(
-                      (new Date(item.expiryDate).getTime() - Date.now()) /
-                        (1000 * 60 * 60 * 24),
-                    )
-                    return daysToExpiry <= 60 && daysToExpiry > 0
-                  }).length === 0 ? (
+                  {expiringAlerts.length === 0 ? (
                     <DashboardPanelEmpty
                       icon={Calendar}
                       title="Nothing expiring soon"
-                      description="No batches due within 60 days."
+                      description="No batches due within 30 days."
                       className="min-h-[200px]"
                     />
                   ) : (
-                    localInventory
-                      .filter((item) => {
-                        const daysToExpiry = Math.ceil(
-                          (new Date(item.expiryDate).getTime() - Date.now()) /
-                            (1000 * 60 * 60 * 24),
-                        )
-                        return daysToExpiry <= 60 && daysToExpiry > 0
-                      })
-                      .map((item) => {
-                        const daysToExpiry = Math.ceil(
-                          (new Date(item.expiryDate).getTime() - Date.now()) /
-                            (1000 * 60 * 60 * 24),
-                        )
-                        return (
-                          <DashboardListRow key={item.id} variant="warning">
-                            <div className="flex items-center gap-3">
-                              <Calendar className="h-4 w-4 text-amber-600" />
-                              <div>
-                                <p className="text-sm font-medium">{item.name}</p>
-                                <p className="text-xs text-neutral-500">{item.category}</p>
-                              </div>
+                    expiringAlerts.map((raw) => {
+                      const item = raw as {
+                        id: string
+                        name?: string
+                        category?: string
+                        expiry?: string | null
+                        quantity?: number
+                      }
+                      const daysToExpiry = item.expiry
+                        ? Math.ceil(
+                            (new Date(item.expiry).getTime() - Date.now()) /
+                              (1000 * 60 * 60 * 24),
+                          )
+                        : 0
+                      return (
+                        <DashboardListRow key={item.id} variant="warning">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="h-4 w-4 text-amber-600" />
+                            <div>
+                              <p className="text-sm font-medium">{item.name ?? "Unknown"}</p>
+                              <p className="text-xs text-neutral-500">{item.category}</p>
                             </div>
-                            <div className="text-right">
-                              <Badge variant={daysToExpiry <= 30 ? 'destructive' : 'secondary'}>
-                                {daysToExpiry} days
-                              </Badge>
-                              <p className="mt-1 text-xs text-neutral-500">Stock: {item.stock}</p>
-                            </div>
-                          </DashboardListRow>
-                        )
-                      })
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={daysToExpiry <= 30 ? "destructive" : "secondary"}>
+                              {daysToExpiry} days
+                            </Badge>
+                            <p className="mt-1 text-xs text-neutral-500">
+                              Stock: {Number(item.quantity ?? 0)}
+                            </p>
+                          </div>
+                        </DashboardListRow>
+                      )
+                    })
                   )}
                 </div>
               </ScrollArea>

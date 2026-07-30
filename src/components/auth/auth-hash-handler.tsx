@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { showVerificationToast } from "@/components/auth/verification-toast";
 
 function decodeAuthMessage(raw: string) {
@@ -13,7 +12,6 @@ function decodeAuthMessage(raw: string) {
  * Native email confirmation uses query params on dedicated routes instead.
  */
 export function AuthHashHandler() {
-  const router = useRouter();
   const handled = useRef(false);
 
   useEffect(() => {
@@ -47,18 +45,18 @@ export function AuthHashHandler() {
           message:
             "This confirmation link has expired. Resend a new confirmation email.",
         });
-        router.replace("/verify-email?expired=1");
+        // Full navigation avoids App Router init races during cold/HMR loads.
+        window.location.assign("/verify-email?expired=1");
         return;
       }
 
       showVerificationToast({ message });
-      router.replace("/sign-in?expired=1");
+      window.location.assign("/sign-in?expired=1");
       return;
     }
 
     clearHash();
-    router.refresh();
-  }, [router]);
+  }, []);
 
   return null;
 }

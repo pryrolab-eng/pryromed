@@ -10,6 +10,7 @@ import {
   Receipt,
   Settings,
   Tag,
+  UserX,
 } from "lucide-react";
 import { ADMIN_ROUTES } from "@/lib/routes/admin-paths";
 
@@ -47,6 +48,12 @@ export const ADMIN_SIDEBAR_GROUPS: AdminNavGroup[] = [
         url: "/admin/stores",
         icon: Building2,
         keywords: "stores tenants pharmacies list",
+      },
+      {
+        title: "Unassigned",
+        url: ADMIN_ROUTES.users,
+        icon: UserX,
+        keywords: "unassigned orphan users incomplete onboarding no pharmacy signup",
       },
       {
         title: "Categories",

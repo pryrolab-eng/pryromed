@@ -13,12 +13,8 @@ export type SettingsApiKeyRow = {
 };
 
 export async function getSettingsApiKeys(): Promise<SettingsApiKeyRow[]> {
-  try {
-    const data = await fetchJson<SettingsApiKeyRow[]>("/api/settings/api-keys");
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await fetchJson<SettingsApiKeyRow[]>("/api/settings/api-keys");
+  return Array.isArray(data) ? data : [];
 }
 
 export async function createSettingsApiKey(body: {

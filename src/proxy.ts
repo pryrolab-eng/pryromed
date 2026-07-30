@@ -26,6 +26,6 @@ export const config = {
      * - sw.js, icon-*.png (PWA probes)
      * - Public files with extensions
      */
-    "/((?!_next/static|_next/image|favicon.ico|@vite|@react-refresh|sw\\.js|workbox-|icon-\\d+\\.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|eot|css|js\\.map)$).+)",
+    "/((?!_next/static|_next/image|favicon.ico|@vite|@react-refresh|sw\\.js|swe-worker|serwist|offline|icons/|workbox-|icon-\\d+\\.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|eot|css|js\\.map)$).+)",
   ],
 };

@@ -14,22 +14,8 @@ export type InvoiceTemplate = {
   footerText: string;
 };
 
-const EMPTY_TEMPLATE: InvoiceTemplate = {
-  showLogo: true,
-  headerFields: [],
-  patientFields: [],
-  productFields: [],
-  showTax: true,
-  showInsuranceSplit: true,
-  footerText: "",
-};
-
 export async function getInvoiceTemplate(): Promise<InvoiceTemplate> {
-  try {
-    return await fetchJson<InvoiceTemplate>("/api/pharmacy/invoice-template");
-  } catch {
-    return EMPTY_TEMPLATE;
-  }
+  return fetchJson<InvoiceTemplate>("/api/pharmacy/invoice-template");
 }
 
 export async function updateInvoiceTemplate(body: InvoiceTemplate): Promise<void> {

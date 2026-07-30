@@ -36,10 +36,31 @@ export function AiSlideOverPanel() {
   const pathname = usePathname();
   const isMobile = useIsMobile();
   const sidebarStateBeforeOpen = useRef<"expanded" | "collapsed">("expanded");
-  const { can } = usePharmacyEntitlements();
-
   const isOnAiPage = AI_PAGE_PATHS.includes(pathname);
   const isAdminRoute = pathname.startsWith("/admin");
+  const { can, isEntitlementsReady } = usePharmacyEntitlements({
+    enabled: !isAdminRoute,
+  });
+  const pharmacyChatAllowed =
+    isAdminRoute || (isEntitlementsReady && can("ai.chat"));
+  const shouldMountRuntime =
+    (isOpen || isExpanding || isOnAiPage) && pharmacyChatAllowed;
+
+  // Close panel if pharmacy plan does not include AI chat
+  useEffect(() => {
+    if (isAdminRoute || !isOpen || !isEntitlementsReady) return;
+    if (!can("ai.chat")) {
+      closePanel();
+      setUpgradeDialogOpen(true);
+    }
+  }, [
+    isAdminRoute,
+    isOpen,
+    isEntitlementsReady,
+    can,
+    closePanel,
+    setUpgradeDialogOpen,
+  ]);
 
   // Sync scope with current route
   useEffect(() => {
@@ -125,16 +146,18 @@ export function AiSlideOverPanel() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <AiRuntimeProvider
-          scope={scope}
-          threadId={threadId}
-          onThreadCreated={handleThreadCreated}
-          pageContext={activePageContext ?? getDynamicPageContextForRoute(pathname).pageContext}
-        >
-          <motion.div layoutId="ai-thread" className="h-full">
-            <AiPanelThreadWrapper />
-          </motion.div>
-        </AiRuntimeProvider>
+        {shouldMountRuntime ? (
+          <AiRuntimeProvider
+            scope={scope}
+            threadId={threadId}
+            onThreadCreated={handleThreadCreated}
+            pageContext={activePageContext ?? getDynamicPageContextForRoute(pathname).pageContext}
+          >
+            <motion.div layoutId="ai-thread" className="h-full">
+              <AiPanelThreadWrapper />
+            </motion.div>
+          </AiRuntimeProvider>
+        ) : null}
       </div>
     </motion.div>
 

@@ -123,6 +123,11 @@ export function AdminSubscriptionsPanel() {
         max_branches: Number(row.max_branches ?? 1),
         max_users: Number(row.max_users ?? 5),
         monthly_tx_limit: Number(row.monthly_tx_limit ?? 500),
+        yearly_price:
+          row.yearly_price == null || row.yearly_price === ''
+            ? null
+            : Number(row.yearly_price),
+        yearly_discount_pct: Number(row.yearly_discount_pct ?? 0),
       }
     })
   }, [plansQuery.data?.plans])
@@ -145,12 +150,16 @@ export function AdminSubscriptionsPanel() {
     name: '',
     price: '',
     billing_cadence: 'monthly' as 'monthly' | 'yearly',
+    yearly_price: '',
+    yearly_discount_pct: '',
     features: '',
     plan_type: 'main' as 'main' | 'branch_addon',
     max_branches: '1',
     max_users: '5',
     monthly_tx_limit: '500',
   })
+  const [editYearlyPrice, setEditYearlyPrice] = useState('')
+  const [editYearlyDiscountPct, setEditYearlyDiscountPct] = useState('')
 
   const [isAddingPlanLoading, setIsAddingPlanLoading] = useState(false)
   const [isSavingPlan, setIsSavingPlan] = useState(false)
@@ -222,6 +231,30 @@ export function AdminSubscriptionsPanel() {
         showFeedback('Plan limits mismatch', limitError, 'error')
         return
       }
+      const yearlyPriceRaw = newPlan.yearly_price.trim()
+      const yearlyPrice =
+        yearlyPriceRaw === ''
+          ? null
+          : Number(yearlyPriceRaw)
+      if (yearlyPrice !== null && (!Number.isFinite(yearlyPrice) || yearlyPrice < 0)) {
+        showFeedback('Invalid yearly price', 'Enter a valid yearly total in RWF, or leave blank.', 'error')
+        return
+      }
+      const yearlyDiscountRaw = newPlan.yearly_discount_pct.trim()
+      const yearlyDiscountPct =
+        yearlyDiscountRaw === '' ? 0 : Number(yearlyDiscountRaw)
+      if (
+        !Number.isFinite(yearlyDiscountPct) ||
+        yearlyDiscountPct < 0 ||
+        yearlyDiscountPct > 100
+      ) {
+        showFeedback(
+          'Invalid yearly discount',
+          'Enter a percent from 0 to 100, or leave blank for no discount.',
+          'error',
+        )
+        return
+      }
       const { polarSync } = await createAdminPlan({
         name: newPlan.name,
         price: parseInt(newPlan.price, 10),
@@ -230,6 +263,8 @@ export function AdminSubscriptionsPanel() {
         billing_period:
           parseInt(newPlan.price, 10) === 0 ? 'free' : newPlan.billing_cadence,
         billing_cadence: newPlan.billing_cadence,
+        yearly_price: yearlyPrice,
+        yearly_discount_pct: Math.round(yearlyDiscountPct),
         max_branches: alignedLimits.max_branches,
         max_users: alignedLimits.max_users,
         monthly_tx_limit: alignedLimits.monthly_tx_limit,
@@ -240,6 +275,8 @@ export function AdminSubscriptionsPanel() {
         name: '',
         price: '',
         billing_cadence: 'monthly',
+        yearly_price: '',
+        yearly_discount_pct: '',
         features: '',
         plan_type: 'main',
         max_branches: '1',
@@ -311,6 +348,12 @@ export function AdminSubscriptionsPanel() {
           })
           setSelectedPlan({ ...p, ...aligned })
           setEditPlanPrice(String(plan.price))
+          setEditYearlyPrice(
+            p.yearly_price == null ? '' : String(p.yearly_price),
+          )
+          setEditYearlyDiscountPct(
+            p.yearly_discount_pct > 0 ? String(p.yearly_discount_pct) : '',
+          )
           setSelectedPolarProductId('')
           setIsEditingPlan(true)
           // Pre-fetch Polar products when dialog opens
@@ -341,6 +384,34 @@ export function AdminSubscriptionsPanel() {
       )
       return
     }
+    const yearlyPriceRaw = editYearlyPrice.trim()
+    const yearlyPrice =
+      yearlyPriceRaw === ''
+        ? null
+        : Number(yearlyPriceRaw)
+    if (yearlyPrice !== null && (!Number.isFinite(yearlyPrice) || yearlyPrice < 0)) {
+      showFeedback(
+        'Invalid yearly price',
+        'Enter a valid yearly total in RWF, or leave blank.',
+        'error',
+      )
+      return
+    }
+    const yearlyDiscountRaw = editYearlyDiscountPct.trim()
+    const yearlyDiscountPct =
+      yearlyDiscountRaw === '' ? 0 : Number(yearlyDiscountRaw)
+    if (
+      !Number.isFinite(yearlyDiscountPct) ||
+      yearlyDiscountPct < 0 ||
+      yearlyDiscountPct > 100
+    ) {
+      showFeedback(
+        'Invalid yearly discount',
+        'Enter a percent from 0 to 100, or leave blank for no discount.',
+        'error',
+      )
+      return
+    }
     const alignedLimits = applyPlanLimitsForFeatures({
       feature_keys: selectedPlan.feature_keys,
       max_branches: selectedPlan.max_branches,
@@ -353,6 +424,8 @@ export function AdminSubscriptionsPanel() {
       billing_period:
         price === 0 ? 'free' : selectedPlan.billing_cadence,
       billing_cadence: selectedPlan.billing_cadence,
+      yearly_price: yearlyPrice,
+      yearly_discount_pct: Math.round(yearlyDiscountPct),
       feature_keys: alignedLimits.feature_keys,
       is_popular: selectedPlan.popular,
       is_active: selectedPlan.is_active,
@@ -618,6 +691,40 @@ export function AdminSubscriptionsPanel() {
                       onChange={(e) => setNewPlan({ ...newPlan, price: e.target.value })}
                     />
                   </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label>Yearly price (RWF)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={newPlan.yearly_price}
+                        onChange={(e) =>
+                          setNewPlan({ ...newPlan, yearly_price: e.target.value })
+                        }
+                        placeholder="Optional fixed yearly total"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Yearly discount (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={newPlan.yearly_discount_pct}
+                        onChange={(e) =>
+                          setNewPlan({
+                            ...newPlan,
+                            yearly_discount_pct: e.target.value,
+                          })
+                        }
+                        placeholder="0 = no discount"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground -mt-2">
+                    Leave both blank for no annual discount. If both are set,
+                    yearly price is preferred on the public pricing page.
+                  </p>
                   <div className="grid gap-2">
                     <Label>Billing cadence</Label>
                     <Select
@@ -752,6 +859,33 @@ export function AdminSubscriptionsPanel() {
                       onChange={(e) => setEditPlanPrice(e.target.value)}
                     />
                   </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label>Yearly price (RWF)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editYearlyPrice}
+                        onChange={(e) => setEditYearlyPrice(e.target.value)}
+                        placeholder="Optional fixed yearly total"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Yearly discount (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={editYearlyDiscountPct}
+                        onChange={(e) => setEditYearlyDiscountPct(e.target.value)}
+                        placeholder="0 = no discount"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground -mt-2">
+                    Leave both blank for no annual discount. If both are set,
+                    yearly price is preferred on the public pricing page.
+                  </p>
                   <div className="grid gap-2">
                     <Label>Billing cadence</Label>
                     <Select

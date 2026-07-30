@@ -1,4 +1,4 @@
-import { ApiError, fetchJson } from "./client";
+import { fetchJson } from "./client";
 
 export type ActivityLogItem = {
   id: string;
@@ -77,24 +77,7 @@ export async function getActivityLogs(
   filters: ActivityLogFilters = {},
 ): Promise<ActivityLogsResponse> {
   const query = buildActivityLogsQuery(filters);
-  try {
-    return await fetchJson<ActivityLogsResponse>(
-      `/api/pharmacy/activity-logs?${query}`,
-    );
-  } catch (error) {
-    if (
-      error instanceof ApiError &&
-      error.status === 403 &&
-      error.message === "audit_logs_disabled"
-    ) {
-      throw error;
-    }
-    return {
-      items: [],
-      total: 0,
-      limit: filters.limit ?? 25,
-      offset: filters.offset ?? 0,
-      stats: { total: 0, inserts: 0, updates: 0, deletes: 0 },
-    };
-  }
+  return fetchJson<ActivityLogsResponse>(
+    `/api/pharmacy/activity-logs?${query}`,
+  );
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { PHARMACY_ROUTES } from '@/lib/routes/pharmacy-paths'
+import { useRouter } from 'next/navigation'
 
 import { useState, useMemo, useCallback, type ReactNode } from 'react'
 import { useSalesAnalytics, useSalesList } from '@/hooks/useSales'
@@ -476,6 +477,7 @@ function CustomerDistributionChart({
 }
 
 export default function SalesPage() {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedPeriod, setSelectedPeriod] = useState<
     'today' | 'week' | 'month' | 'all'
@@ -533,7 +535,7 @@ export default function SalesPage() {
             </DashboardButton>
             <DashboardButton
               tone="primary"
-              onClick={() => { window.location.href = PHARMACY_ROUTES.pos }}
+              onClick={() => router.push(PHARMACY_ROUTES.pos)}
             >
               <Receipt className="h-4 w-4" />
               New sale
@@ -541,6 +543,22 @@ export default function SalesPage() {
           </DashboardToolbar>
         }
       />
+
+      {salesQuery.isError || analyticsQuery.isError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          Could not load sales data.{" "}
+          <button
+            type="button"
+            className="font-medium underline underline-offset-2"
+            onClick={() => {
+              void salesQuery.refetch()
+              void analyticsQuery.refetch()
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <DashboardMetricGrid>
         <DashboardStatCard

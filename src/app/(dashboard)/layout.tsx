@@ -16,8 +16,8 @@ import {
   DashboardProviders,
 } from '@/components/shell/dashboard-providers'
 import { DashboardCommandPalette, AdminCommandPalette } from '@/components/dashboard'
-import { AiSlideOverPanel } from '@/components/ai-panel'
 import { BranchScopeProvider } from '@/hooks/useBranchScope'
+import { AiSlideOverPanelLazy } from '@/components/ai-panel/ai-slide-over-panel-lazy'
 
 export default async function DashboardLayout({
   children,
@@ -60,7 +60,7 @@ export default async function DashboardLayout({
               children
             )}
           </DashboardMainScroll>
-          <AiSlideOverPanel />
+          <AiSlideOverPanelLazy />
         </div>
       </SidebarInset>
     </>

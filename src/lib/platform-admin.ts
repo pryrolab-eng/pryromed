@@ -5,7 +5,8 @@ export function isLegacyPharmacyPlatformRole(role: string | null | undefined): b
   return role === "admin" || role === "superadmin";
 }
 
-let cachedIsPlatformAdmin: boolean | null = null;
+const CACHE_TTL_MS = 60_000;
+const adminCache = new Map<string, { value: boolean; expiresAt: number }>();
 
 async function fetchIsPlatformAdmin(): Promise<boolean> {
   try {
@@ -24,14 +25,29 @@ async function fetchIsPlatformAdmin(): Promise<boolean> {
  * Prefer public.users.is_platform_admin; still accepts legacy pharmacy_users admin rows.
  */
 export async function resolveIsAppPlatformAdmin(
-  _userId: string,
+  userId: string,
   primaryPharmacyRole?: string | null,
 ): Promise<boolean> {
   if (isLegacyPharmacyPlatformRole(primaryPharmacyRole)) {
     return true;
   }
-  if (cachedIsPlatformAdmin === null) {
-    cachedIsPlatformAdmin = await fetchIsPlatformAdmin();
+
+  const now = Date.now();
+  const cached = adminCache.get(userId);
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
   }
-  return cachedIsPlatformAdmin;
+
+  const value = await fetchIsPlatformAdmin();
+  adminCache.set(userId, { value, expiresAt: now + CACHE_TTL_MS });
+  return value;
+}
+
+/** Clear cached admin bits (e.g. after role changes). */
+export function invalidatePlatformAdminCache(userId?: string): void {
+  if (userId) {
+    adminCache.delete(userId);
+    return;
+  }
+  adminCache.clear();
 }

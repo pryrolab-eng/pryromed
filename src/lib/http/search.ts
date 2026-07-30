@@ -25,21 +25,17 @@ export async function searchPharmacyData(
 ): Promise<PharmacyGlobalSearchResult> {
   const trimmed = q.trim();
   if (trimmed.length < MIN_GLOBAL_SEARCH_LENGTH) return EMPTY_PHARMACY;
-  try {
-    const data = await fetchJson<PharmacyGlobalSearchResult>(
-      `/api/search?q=${encodeURIComponent(trimmed)}`,
-    );
-    return {
-      customers: data.customers ?? [],
-      products: data.products ?? [],
-      prescriptions: data.prescriptions ?? [],
-      sales: data.sales ?? [],
-      staff: data.staff ?? [],
-      branches: data.branches ?? [],
-    };
-  } catch {
-    return EMPTY_PHARMACY;
-  }
+  const data = await fetchJson<PharmacyGlobalSearchResult>(
+    `/api/search?q=${encodeURIComponent(trimmed)}`,
+  );
+  return {
+    customers: data.customers ?? [],
+    products: data.products ?? [],
+    prescriptions: data.prescriptions ?? [],
+    sales: data.sales ?? [],
+    staff: data.staff ?? [],
+    branches: data.branches ?? [],
+  };
 }
 
 export async function searchAdminData(
@@ -47,16 +43,12 @@ export async function searchAdminData(
 ): Promise<AdminGlobalSearchResult> {
   const trimmed = q.trim();
   if (trimmed.length < MIN_GLOBAL_SEARCH_LENGTH) return EMPTY_ADMIN;
-  try {
-    const data = await fetchJson<AdminGlobalSearchResult>(
-      `/api/admin/search?q=${encodeURIComponent(trimmed)}`,
-    );
-    return {
-      pharmacies: data.pharmacies ?? [],
-      staff: data.staff ?? [],
-      branches: data.branches ?? [],
-    };
-  } catch {
-    return EMPTY_ADMIN;
-  }
+  const data = await fetchJson<AdminGlobalSearchResult>(
+    `/api/admin/search?q=${encodeURIComponent(trimmed)}`,
+  );
+  return {
+    pharmacies: data.pharmacies ?? [],
+    staff: data.staff ?? [],
+    branches: data.branches ?? [],
+  };
 }

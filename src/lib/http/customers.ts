@@ -74,19 +74,15 @@ export async function getCustomers(
   page?: number,
   limit?: number,
 ): Promise<PaginatedCustomersList> {
-  try {
-    const params = new URLSearchParams();
-    if (page) params.set("page", String(page));
-    if (limit) params.set("limit", String(limit));
-    const url = params.toString() ? `/api/customers?${params}` : "/api/customers";
-    const data = await fetchJson<PaginatedCustomersList | CustomerRow[]>(url);
-    if (Array.isArray(data)) {
-      return { rows: data, total: data.length, page: 1, limit: data.length || 50 };
-    }
-    return data ?? { rows: [], total: 0, page: 1, limit: 50 };
-  } catch {
-    return { rows: [], total: 0, page: 1, limit: 50 };
+  const params = new URLSearchParams();
+  if (page) params.set("page", String(page));
+  if (limit) params.set("limit", String(limit));
+  const url = params.toString() ? `/api/customers?${params}` : "/api/customers";
+  const data = await fetchJson<PaginatedCustomersList | CustomerRow[]>(url);
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length, page: 1, limit: data.length || 50 };
   }
+  return data ?? { rows: [], total: 0, page: 1, limit: 50 };
 }
 
 export type CreateCustomerInput = {
@@ -158,12 +154,8 @@ export async function deleteCustomer(id: string) {
 
 export async function searchCustomers(q: string): Promise<CustomerSearchRow[]> {
   if (q.trim().length < 2) return [];
-  try {
-    const data = await fetchJson<CustomerSearchRow[]>(
-      `/api/customers?q=${encodeURIComponent(q.trim())}`,
-    );
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await fetchJson<CustomerSearchRow[]>(
+    `/api/customers?q=${encodeURIComponent(q.trim())}`,
+  );
+  return Array.isArray(data) ? data : [];
 }

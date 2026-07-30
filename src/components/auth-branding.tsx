@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useBranding } from '@/hooks/useBranding'
-import { LogoIcon } from '@/components/logo'
+import { AppIcon, LogoIcon } from '@/components/logo'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
@@ -11,7 +11,7 @@ const DEFAULT_NAME = 'Pryrox'
 function DefaultLogoMark({ className }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 ${className ?? ''}`}>
-      <LogoIcon />
+      <AppIcon size={20} />
       <span className="font-bold text-foreground tracking-tight text-base">
         {DEFAULT_NAME}
       </span>
@@ -19,7 +19,7 @@ function DefaultLogoMark({ className }: { className?: string }) {
   )
 }
 
-/** Logo on auth pages — custom image URL if set, else gradient mark + name */
+/** Logo on auth pages — custom image URL if set, else PWA app icon + name */
 export function AuthBrandingLogo({
   className,
   prominent = false,
@@ -47,7 +47,11 @@ export function AuthBrandingLogo({
 
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <LogoIcon className={prominent ? 'size-9' : 'size-6'} />
+      <AppIcon
+        size={prominent ? 36 : 24}
+        className={prominent ? 'rounded-lg' : 'rounded-md'}
+        alt={platformName}
+      />
       <span
         className={cn(
           'font-bold tracking-tight text-foreground',
@@ -125,7 +129,7 @@ export function DynamicLogo({ className }: { className?: string }) {
 
   return (
     <span className={`inline-flex items-center gap-2 ${className ?? ''}`}>
-      <LogoIcon />
+      <AppIcon size={20} alt={platformName} />
       <span className="font-bold text-foreground tracking-tight text-base">{platformName}</span>
     </span>
   )

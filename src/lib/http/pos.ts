@@ -126,33 +126,26 @@ export type TeamOpenCashierShift = {
 export async function getPosProducts(
   branchId?: string | null,
 ): Promise<PosProduct[]> {
-  try {
-    const params = new URLSearchParams();
-    if (branchId && branchId !== "all") {
-      params.set("branchId", branchId);
-    }
-    const url = params.toString() ? `/api/pos/products?${params}` : "/api/pos/products";
-    const data = await fetchJson<PosProduct[]>(url);
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
+  const params = new URLSearchParams();
+  if (branchId && branchId !== "all") {
+    params.set("branchId", branchId);
   }
+  const url = params.toString() ? `/api/pos/products?${params}` : "/api/pos/products";
+  const data = await fetchJson<PosProduct[]>(url);
+  return Array.isArray(data) ? data : [];
 }
 
+/**
+ * Near-expiry / priority shelf items derived from the products catalog
+ * (same sort order as listProducts — soonest expiry first). Avoids a duplicate fetch.
+ */
 export async function getPosFastMovingProducts(
   branchId?: string | null,
 ): Promise<PosProduct[]> {
-  try {
-    const params = new URLSearchParams();
-    if (branchId && branchId !== "all") {
-      params.set("branchId", branchId);
-    }
-    const url = params.toString() ? `/api/pos/products?${params}` : "/api/pos/products";
-    const data = await fetchJson<PosProduct[]>(url);
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const products = await getPosProducts(branchId);
+  return products
+    .filter((product) => product.daysToExpiry <= 90)
+    .slice(0, 48);
 }
 
 export async function processPosSale(

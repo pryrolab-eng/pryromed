@@ -63,65 +63,121 @@ export type PaginatedInventoryList = {
 
 export const inventoryKeys = {
   all: ["inventory"] as const,
-  list: (branchId?: string | null, page?: number, limit?: number) =>
-    [...inventoryKeys.all, "list", branchId ?? "all", page ?? 1, limit ?? 50] as const,
+  list: (
+    branchId?: string | null,
+    page?: number,
+    limit?: number,
+    q?: string,
+    category?: string,
+  ) =>
+    [
+      ...inventoryKeys.all,
+      "list",
+      branchId ?? "all",
+      page ?? 1,
+      limit ?? 50,
+      q ?? "",
+      category ?? "all",
+    ] as const,
   analytics: (branchId?: string | null) => [...inventoryKeys.all, "analytics", branchId ?? "all"] as const,
   suppliers: () => [...inventoryKeys.all, "suppliers"] as const,
-  combined: (branchId?: string | null) => [...inventoryKeys.all, "combined", branchId ?? "all"] as const,
+  combined: (
+    branchId?: string | null,
+    page?: number,
+    limit?: number,
+    q?: string,
+    category?: string,
+  ) =>
+    [
+      ...inventoryKeys.all,
+      "combined",
+      branchId ?? "all",
+      page ?? 1,
+      limit ?? 50,
+      q ?? "",
+      category ?? "all",
+    ] as const,
 };
 
 export type CombinedInventoryData = {
-  inventory: InventoryListRow[];
+  inventory: PaginatedInventoryList;
   stockAlerts: { all: unknown[]; lowStock: unknown[]; expiring: unknown[] };
   expiryAlerts: unknown[];
 };
 
+function normalizeCombinedInventory(data: unknown): CombinedInventoryData {
+  const raw = (data ?? {}) as {
+    inventory?: PaginatedInventoryList | InventoryListRow[];
+    stockAlerts?: CombinedInventoryData["stockAlerts"];
+    expiryAlerts?: unknown[];
+  };
+  const inventory = Array.isArray(raw.inventory)
+    ? {
+        rows: raw.inventory,
+        total: raw.inventory.length,
+        page: 1,
+        limit: raw.inventory.length || 50,
+      }
+    : {
+        rows: Array.isArray(raw.inventory?.rows) ? raw.inventory.rows : [],
+        total: Number(raw.inventory?.total ?? 0),
+        page: Number(raw.inventory?.page ?? 1),
+        limit: Number(raw.inventory?.limit ?? 50),
+      };
+  return {
+    inventory,
+    stockAlerts: raw.stockAlerts ?? { all: [], lowStock: [], expiring: [] },
+    expiryAlerts: Array.isArray(raw.expiryAlerts) ? raw.expiryAlerts : [],
+  };
+}
+
 export async function getCombinedInventoryData(
   branchId?: string | null,
+  page = 1,
+  limit = 50,
+  filters?: { q?: string; category?: string },
 ): Promise<CombinedInventoryData> {
   const params = new URLSearchParams();
   if (branchId && branchId !== "all") params.set("branchId", branchId);
-  const query = params.toString();
-  return fetchJson<CombinedInventoryData>(
-    `/api/inventory/combined${query ? `?${query}` : ""}`,
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  const q = filters?.q?.trim();
+  if (q) params.set("q", q);
+  const category = filters?.category?.trim();
+  if (category && category !== "all") params.set("category", category);
+  const data = await fetchJson<unknown>(
+    `/api/inventory/combined?${params.toString()}`,
   );
+  return normalizeCombinedInventory(data);
 }
 
-const EMPTY_ANALYTICS: InventoryAnalytics = {
-  stockByCategory: [],
-  inventoryTrend: [],
-};
-
-export async function getInventoryList(branchId?: string | null, page?: number, limit?: number): Promise<PaginatedInventoryList> {
-  try {
-    const params = new URLSearchParams();
-    if (branchId && branchId !== "all") {
-      params.set("branchId", branchId);
-    }
-    if (page) params.set("page", String(page));
-    if (limit) params.set("limit", String(limit));
-    const url = params.toString() ? `/api/inventory?${params}` : "/api/inventory";
-    return await fetchJson<PaginatedInventoryList>(url);
-  } catch {
-    return { rows: [], total: 0, page: 1, limit: 50 };
+export async function getInventoryList(
+  branchId?: string | null,
+  page?: number,
+  limit?: number,
+  filters?: { q?: string; category?: string },
+): Promise<PaginatedInventoryList> {
+  const params = new URLSearchParams();
+  if (branchId && branchId !== "all") {
+    params.set("branchId", branchId);
   }
+  if (page) params.set("page", String(page));
+  if (limit) params.set("limit", String(limit));
+  const q = filters?.q?.trim();
+  if (q) params.set("q", q);
+  const category = filters?.category?.trim();
+  if (category && category !== "all") params.set("category", category);
+  const url = params.toString() ? `/api/inventory?${params}` : "/api/inventory";
+  return fetchJson<PaginatedInventoryList>(url);
 }
 
 export async function getInventoryAnalytics(): Promise<InventoryAnalytics> {
-  try {
-    return await fetchJson<InventoryAnalytics>("/api/inventory/analytics");
-  } catch {
-    return EMPTY_ANALYTICS;
-  }
+  return fetchJson<InventoryAnalytics>("/api/inventory/analytics");
 }
 
 export async function getInventorySuppliers(): Promise<InventorySupplier[]> {
-  try {
-    const data = await fetchJson<InventorySupplier[]>("/api/inventory/suppliers");
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await fetchJson<InventorySupplier[]>("/api/inventory/suppliers");
+  return Array.isArray(data) ? data : [];
 }
 
 export async function createInventorySupplier(body: {

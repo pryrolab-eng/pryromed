@@ -134,6 +134,10 @@ export function SettingsSecurityPanel() {
 
       <div className="flex items-start gap-2 rounded-lg border border-neutral-200/80 bg-neutral-50/50 p-4 text-xs text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800/30 dark:text-neutral-400">
         <Shield className="mt-0.5 size-4 shrink-0" />
+        <p>
+          Keep 2FA on for owner accounts, and only enable the IP whitelist from a
+          trusted network so you are not locked out of the pharmacy workspace.
+        </p>
       </div>
     </div>
   );

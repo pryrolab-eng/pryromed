@@ -62,31 +62,14 @@ export type ReportsInventoryData = {
   }>;
 };
 
-const EMPTY_SALES: ReportsSalesData = {
-  dailySales: [],
-  topProducts: [],
-  paymentBreakdown: [],
-  totalSales: 0,
-  totalOrders: 0,
-  activeCustomers: 0,
-};
-
 export async function getReportsSales(
   scope?: BranchScopeQuery,
 ): Promise<ReportsSalesData> {
-  try {
-    return await fetchJson<ReportsSalesData>(
-      `/api/reports/sales${buildBranchScopeQueryString(scope ?? {})}`,
-    );
-  } catch {
-    return EMPTY_SALES;
-  }
+  return fetchJson<ReportsSalesData>(
+    `/api/reports/sales${buildBranchScopeQueryString(scope ?? {})}`,
+  );
 }
 
 export async function getReportsInventory(): Promise<ReportsInventoryData> {
-  try {
-    return await fetchJson<ReportsInventoryData>("/api/reports/inventory");
-  } catch {
-    return { inventoryAlerts: [] };
-  }
+  return fetchJson<ReportsInventoryData>("/api/reports/inventory");
 }

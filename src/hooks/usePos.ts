@@ -15,7 +15,6 @@ import {
 import {
   analyzeCartSafety,
   checkPosPrice,
-  getPosFastMovingProducts,
   getPosProducts,
   holdPosSale,
   lookupPosCustomerByPhone,
@@ -75,9 +74,12 @@ export function usePosFastMoving(options?: {
 }) {
   const branchId = options?.branchId;
   return useQuery({
-    queryKey: posKeys.fastMoving(branchId),
-    queryFn: () => getPosFastMovingProducts(branchId),
+    // Share cache with usePosProducts — no second /api/pos/products round-trip.
+    queryKey: posKeys.products(branchId),
+    queryFn: () => getPosProducts(branchId),
     enabled: (options?.enabled ?? true) && Boolean(branchId),
+    select: (products) =>
+      products.filter((product) => product.daysToExpiry <= 90).slice(0, 48),
   });
 }
 

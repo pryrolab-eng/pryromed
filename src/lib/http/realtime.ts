@@ -15,11 +15,14 @@ export type RealtimeUpdate = {
   data: unknown;
 };
 
+type RealtimeUpdatesEnvelope = {
+  updates?: RealtimeUpdate[];
+};
+
 export async function getRealtimeUpdates(): Promise<RealtimeUpdate[]> {
-  try {
-    const data = await fetchJson<RealtimeUpdate[]>("/api/realtime/updates");
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await fetchJson<RealtimeUpdate[] | RealtimeUpdatesEnvelope>(
+    "/api/realtime/updates",
+  );
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data?.updates) ? data.updates : [];
 }

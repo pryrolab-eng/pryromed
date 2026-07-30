@@ -113,6 +113,29 @@ export default function CustomersPage() {
     return <DashboardPageLoading label="Loading customers…" />
   }
 
+  if (customersQuery.isError) {
+    return (
+      <FeatureGate featureKey="customers.access">
+        <DashboardPageShell>
+          <DashboardPageHeader
+            title="Customers"
+            description="Manage customer profiles for POS, insurance, and visit history"
+          />
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+            Could not load customers.{" "}
+            <button
+              type="button"
+              className="font-medium underline underline-offset-2"
+              onClick={() => void customersQuery.refetch()}
+            >
+              Retry
+            </button>
+          </div>
+        </DashboardPageShell>
+      </FeatureGate>
+    )
+  }
+
   return (
     <FeatureGate featureKey="customers.access">
       <DashboardPageShell>
