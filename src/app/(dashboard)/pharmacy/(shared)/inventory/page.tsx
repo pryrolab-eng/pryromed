@@ -56,6 +56,7 @@ import {
   DashboardAlertDialogActions,
 } from '@/components/dashboard'
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -156,6 +157,36 @@ function toInventoryItem(row: InventoryListRow): InventoryItem {
   }
 }
 
+type InventoryAlertItem = {
+  id: string
+  name?: string
+  category?: string
+  batch?: string | null
+  quantity?: number | null
+  minimum?: number | null
+  expiry?: string | null
+}
+
+type InventoryAlertFilter =
+  | 'all'
+  | 'low-stock'
+  | 'out-of-stock'
+  | 'expired'
+  | 'expiring'
+
+const ALERT_FILTER_OPTIONS: Array<{ value: InventoryAlertFilter; label: string }> =
+  [
+    { value: 'all', label: 'All alerts' },
+    { value: 'low-stock', label: 'Low stock' },
+    { value: 'out-of-stock', label: 'Out of stock' },
+    { value: 'expiring', label: 'Expiring' },
+    { value: 'expired', label: 'Expired' },
+  ]
+
+function isAlertFilter(value: string | null): value is InventoryAlertFilter {
+  return ALERT_FILTER_OPTIONS.some((option) => option.value === value)
+}
+
 export default function InventoryPage() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -174,13 +205,19 @@ export default function InventoryPage() {
     can('inventory.analytics') ||
     !shouldHideLockedFeature('inventory.analytics', can)
   const canInsurance = can('pos.insurance')
+  const resolvedFilter = useMemo(() => {
+    const filter = searchParams.get('filter')
+    return isAlertFilter(filter) ? filter : 'all'
+  }, [searchParams])
   const resolvedTab = useMemo(() => {
     const tab = searchParams.get('tab')
     if (tab === 'insurance' && canInsurance) return 'insurance'
     if (tab === 'alerts' || tab === 'analytics' || tab === 'actions') return tab
+    if (resolvedFilter !== 'all') return 'alerts'
     return 'inventory'
-  }, [searchParams, canInsurance])
+  }, [searchParams, canInsurance, resolvedFilter])
 const [activeTab, setActiveTab] = useState(resolvedTab)
+  const [alertFilter, setAlertFilter] = useState<InventoryAlertFilter>(resolvedFilter)
   const [inventoryPage, setInventoryPage] = useState(1)
   const [inventoryPageSize, setInventoryPageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
@@ -229,6 +266,36 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
   const inventoryTotal = inventoryPageData?.total ?? localInventory.length
   const lowStockAlerts = combinedQuery.data?.stockAlerts?.lowStock ?? []
   const expiringAlerts = combinedQuery.data?.stockAlerts?.expiring ?? []
+  const filteredLowStock = useMemo(() => {
+    const items = lowStockAlerts as InventoryAlertItem[]
+    if (alertFilter === 'out-of-stock') {
+      return items.filter((i) => Number(i.quantity ?? 0) === 0)
+    }
+    if (alertFilter === 'low-stock') {
+      return items.filter((i) => Number(i.quantity ?? 0) > 0)
+    }
+    return items
+  }, [lowStockAlerts, alertFilter])
+  const filteredExpiring = useMemo(() => {
+    const items = expiringAlerts as InventoryAlertItem[]
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    if (alertFilter === 'expired') {
+      return items.filter(
+        (i) => i.expiry != null && new Date(i.expiry).getTime() < todayStart.getTime(),
+      )
+    }
+    if (alertFilter === 'expiring') {
+      return items.filter(
+        (i) => i.expiry != null && new Date(i.expiry).getTime() >= todayStart.getTime(),
+      )
+    }
+    return items
+  }, [expiringAlerts, alertFilter])
+  const lowStockPanelVisible =
+    alertFilter === 'all' || alertFilter === 'low-stock' || alertFilter === 'out-of-stock'
+  const expiryPanelVisible =
+    alertFilter === 'all' || alertFilter === 'expiring' || alertFilter === 'expired'
   const categories = (Array.isArray(categoriesQuery.data) ? categoriesQuery.data : []) as CategoryCatalogItem[]
   const suppliers = (Array.isArray(suppliersQuery.data) ? suppliersQuery.data : []).map((s) => ({
     id: s.id,
@@ -302,6 +369,10 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
   }, [resolvedTab])
 
   useEffect(() => {
+    setAlertFilter(resolvedFilter)
+  }, [resolvedFilter])
+
+  useEffect(() => {
     setInventoryPage(1)
   }, [activeBranchId, debouncedSearch, selectedCategory])
 
@@ -316,7 +387,17 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
     const params = new URLSearchParams(searchParams.toString())
     if (value === 'inventory') params.delete('tab')
     else params.set('tab', value)
+    if (value !== 'alerts') params.delete('filter')
     if (value !== 'insurance') params.delete('import')
+    const qs = params.toString()
+    replaceUrlShallow(qs ? `${pathname}?${qs}` : pathname)
+  }
+
+  const handleAlertFilterChange = (filter: InventoryAlertFilter) => {
+    setAlertFilter(filter)
+    const params = new URLSearchParams(searchParams.toString())
+    if (filter === 'all') params.delete('filter')
+    else params.set('filter', filter)
     const qs = params.toString()
     replaceUrlShallow(qs ? `${pathname}?${qs}` : pathname)
   }
@@ -1378,110 +1459,141 @@ const [activeTab, setActiveTab] = useState(resolvedTab)
         ) : null}
         
         <TabsContent value="alerts" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <DashboardSectionCard
-              title="Low stock alerts"
-              description="Items below minimum threshold"
-            >
-              <ScrollArea className="h-64">
-                <div className="space-y-3">
-                  {lowStockAlerts.length === 0 ? (
-                    <DashboardPanelEmpty
-                      icon={Package}
-                      title="No low stock items"
-                      description="Everything is above your minimum thresholds."
-                      className="min-h-[200px]"
-                    />
-                  ) : (
-                    lowStockAlerts.map((raw) => {
-                      const item = raw as {
-                        id: string
-                        name?: string
-                        category?: string
-                        quantity?: number
-                        minimum?: number
-                      }
-                      const stock = Number(item.quantity ?? 0)
-                      const min = Number(item.minimum ?? 0)
-                      return (
-                        <DashboardListRow key={item.id} variant="danger">
-                          <div className="flex items-center gap-3">
-                            <Package className="h-4 w-4 text-red-600" />
-                            <div>
-                              <p className="text-sm font-medium">{item.name ?? "Unknown"}</p>
-                              <p className="text-xs text-neutral-500">{item.category}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {ALERT_FILTER_OPTIONS.map((option) => (
+              <Button
+                key={option.value}
+                type="button"
+                size="sm"
+                variant={alertFilter === option.value ? "default" : "outline"}
+                onClick={() => handleAlertFilterChange(option.value)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+          <div
+            className={`grid gap-4 ${
+              lowStockPanelVisible && expiryPanelVisible ? "md:grid-cols-2" : ""
+            }`}
+          >
+            {lowStockPanelVisible ? (
+              <DashboardSectionCard
+                title={alertFilter === 'out-of-stock' ? "Out of stock" : "Low stock alerts"}
+                description={
+                  alertFilter === 'out-of-stock'
+                    ? "Items with zero quantity"
+                    : "Items below minimum threshold"
+                }
+              >
+                <ScrollArea className="h-64">
+                  <div className="space-y-3">
+                    {filteredLowStock.length === 0 ? (
+                      <DashboardPanelEmpty
+                        icon={Package}
+                        title={
+                          alertFilter === 'out-of-stock'
+                            ? "No out of stock items"
+                            : "No low stock items"
+                        }
+                        description={
+                          alertFilter === 'out-of-stock'
+                            ? "Everything has stock available."
+                            : "Everything is above your minimum thresholds."
+                        }
+                        className="min-h-[200px]"
+                      />
+                    ) : (
+                      filteredLowStock.map((item) => {
+                        const stock = Number(item.quantity ?? 0)
+                        const min = Number(item.minimum ?? 0)
+                        return (
+                          <DashboardListRow key={item.id} variant="danger">
+                            <div className="flex items-center gap-3">
+                              <Package className="h-4 w-4 text-red-600" />
+                              <div>
+                                <p className="text-sm font-medium">{item.name ?? "Unknown"}</p>
+                                <p className="text-xs text-neutral-500">{item.category}</p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-red-700">
-                              {stock} / {min}
-                            </p>
-                            <DashboardProgressTrack
-                              value={(stock / Math.max(min, 1)) * 100}
-                              className="mt-1 w-20"
-                              barClassName="bg-red-600"
-                            />
-                          </div>
-                        </DashboardListRow>
-                      )
-                    })
-                  )}
-                </div>
-              </ScrollArea>
-            </DashboardSectionCard>
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-red-700">
+                                {stock} / {min}
+                              </p>
+                              <DashboardProgressTrack
+                                value={(stock / Math.max(min, 1)) * 100}
+                                className="mt-1 w-20"
+                                barClassName="bg-red-600"
+                              />
+                            </div>
+                          </DashboardListRow>
+                        )
+                      })
+                    )}
+                  </div>
+                </ScrollArea>
+              </DashboardSectionCard>
+            ) : null}
 
-            <DashboardSectionCard
-              title="Expiring items"
-              description="Products expiring within 30 days"
-            >
-              <ScrollArea className="h-64">
-                <div className="space-y-3">
-                  {expiringAlerts.length === 0 ? (
-                    <DashboardPanelEmpty
-                      icon={Calendar}
-                      title="Nothing expiring soon"
-                      description="No batches due within 30 days."
-                      className="min-h-[200px]"
-                    />
-                  ) : (
-                    expiringAlerts.map((raw) => {
-                      const item = raw as {
-                        id: string
-                        name?: string
-                        category?: string
-                        expiry?: string | null
-                        quantity?: number
-                      }
-                      const daysToExpiry = item.expiry
-                        ? Math.ceil(
-                            (new Date(item.expiry).getTime() - Date.now()) /
-                              (1000 * 60 * 60 * 24),
-                          )
-                        : 0
-                      return (
-                        <DashboardListRow key={item.id} variant="warning">
-                          <div className="flex items-center gap-3">
-                            <Calendar className="h-4 w-4 text-amber-600" />
-                            <div>
-                              <p className="text-sm font-medium">{item.name ?? "Unknown"}</p>
-                              <p className="text-xs text-neutral-500">{item.category}</p>
+            {expiryPanelVisible ? (
+              <DashboardSectionCard
+                title={alertFilter === 'expired' ? "Expired items" : "Expiring items"}
+                description={
+                  alertFilter === 'expired'
+                    ? "Products past their expiry date"
+                    : "Products expiring within 30 days"
+                }
+              >
+                <ScrollArea className="h-64">
+                  <div className="space-y-3">
+                    {filteredExpiring.length === 0 ? (
+                      <DashboardPanelEmpty
+                        icon={Calendar}
+                        title={
+                          alertFilter === 'expired'
+                            ? "No expired items"
+                            : "Nothing expiring soon"
+                        }
+                        description={
+                          alertFilter === 'expired'
+                            ? "No batches are past their expiry date."
+                            : "No batches due within 30 days."
+                        }
+                        className="min-h-[200px]"
+                      />
+                    ) : (
+                      filteredExpiring.map((item) => {
+                        const daysToExpiry = item.expiry
+                          ? Math.ceil(
+                              (new Date(item.expiry).getTime() - Date.now()) /
+                                (1000 * 60 * 60 * 24),
+                            )
+                          : 0
+                        return (
+                          <DashboardListRow key={item.id} variant="warning">
+                            <div className="flex items-center gap-3">
+                              <Calendar className="h-4 w-4 text-amber-600" />
+                              <div>
+                                <p className="text-sm font-medium">{item.name ?? "Unknown"}</p>
+                                <p className="text-xs text-neutral-500">{item.category}</p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge variant={daysToExpiry <= 30 ? "destructive" : "secondary"}>
-                              {daysToExpiry} days
-                            </Badge>
-                            <p className="mt-1 text-xs text-neutral-500">
-                              Stock: {Number(item.quantity ?? 0)}
-                            </p>
-                          </div>
-                        </DashboardListRow>
-                      )
-                    })
-                  )}
-                </div>
-              </ScrollArea>
-            </DashboardSectionCard>
+                            <div className="text-right">
+                              <Badge variant={daysToExpiry <= 30 ? "destructive" : "secondary"}>
+                                {daysToExpiry < 0 ? "Expired" : `${daysToExpiry} days`}
+                              </Badge>
+                              <p className="mt-1 text-xs text-neutral-500">
+                                Stock: {Number(item.quantity ?? 0)}
+                              </p>
+                            </div>
+                          </DashboardListRow>
+                        )
+                      })
+                    )}
+                  </div>
+                </ScrollArea>
+              </DashboardSectionCard>
+            ) : null}
           </div>
         </TabsContent>
         

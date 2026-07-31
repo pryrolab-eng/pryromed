@@ -4,6 +4,6 @@ import type { PharmacyBranding } from "@/lib/http/pharmacy-branding";
 export const DEFAULT_PHARMACY_BRANDING: PharmacyBranding = {
   platformName: "",
   logoUrl: "",
-  primaryColor: "#171717",
+  primaryColor: "#0084FF",
   customDomain: "",
 };

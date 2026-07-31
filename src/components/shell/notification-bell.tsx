@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useNotificationStream } from "@/hooks/useNotificationStream";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import { statusToneBarClass } from "@/lib/ui/status-tone";
 export function NotificationBell() {
   const { notifications, unreadCount, connected, markRead } =
     useNotificationStream();
+  const router = useRouter();
 
   return (
     <DropdownMenu>
@@ -54,6 +56,9 @@ export function NotificationBell() {
               className="flex flex-col items-start gap-1"
               onSelect={() => {
                 if (!item.read) void markRead(item.id);
+                if (item.actionUrl?.startsWith("/")) {
+                  void router.push(item.actionUrl);
+                }
               }}
             >
               <span className="font-medium">{item.title}</span>

@@ -33,3 +33,13 @@ export async function updateNotificationPreferences(
 export async function markNotificationRead(id: string): Promise<void> {
   await fetchJson(`/api/notifications/${id}/read`, { method: "PATCH" });
 }
+
+export async function checkExpiryNotifications(): Promise<{
+  success: boolean;
+  pharmaciesScanned: number;
+  expiryNotifications: number;
+  expiredNotifications: number;
+  emailed: number;
+}> {
+  return fetchJson("/api/notifications/check-expiry", { method: "POST" });
+}

@@ -993,7 +993,7 @@ export function PosWorkspace(props: PosWorkspaceProps) {
 
             {/* Complete sale — first */}
             {shiftBlocksSale ? (
-              <p className="text-center text-xs font-medium text-amber-800 dark:text-amber-200">
+              <p className="text-center text-xs font-medium text-red-500 dark:text-red-200">
                 Open your cashier shift to complete a sale.
               </p>
             ) : null}

@@ -53,7 +53,20 @@ const config = {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
-  			sidebar: {
+   		brand: {
+   			DEFAULT: '#003459',
+   			50: '#e6eef3',
+   			100: '#b3cce0',
+   			200: '#80a9cc',
+   			300: '#4d87b9',
+   			400: '#266da6',
+   			500: '#003459',
+   			600: '#003459',
+   			700: '#002a47',
+   			800: '#002036',
+   			900: '#001524',
+   		},
+   		sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
   				primary: 'hsl(var(--sidebar-primary))',

@@ -13,6 +13,7 @@ import {
 } from "@/components/settings/settings-primitives";
 import { useSettingsPage } from "@/components/settings/settings-page-provider";
 import { cn } from "@/lib/utils";
+import { checkExpiryNotifications } from "@/lib/http/notification-preferences";
 
 const RENEWAL_REMINDER_OPTIONS = [
   { value: 14, label: "2 weeks" },
@@ -25,6 +26,7 @@ const RENEWAL_REMINDER_OPTIONS = [
 export function SettingsNotificationsPanel() {
   const { notifyPrefs, saveNotifyPrefs } = useSettingsPage();
   const [customRenewalDay, setCustomRenewalDay] = useState("");
+  const [checking, setChecking] = useState(false);
 
   const patch = (key: keyof typeof notifyPrefs, value: boolean) => {
     void saveNotifyPrefs({ ...notifyPrefs, [key]: value });
@@ -52,6 +54,22 @@ export function SettingsNotificationsPanel() {
     }
     patchRenewalDays([...notifyPrefs.subscriptionRenewalDays, parsed]);
     setCustomRenewalDay("");
+  };
+
+  const handleCheckExpiry = async () => {
+    setChecking(true);
+    try {
+      const result = await checkExpiryNotifications();
+      toast.success("Expiry check complete", {
+        description: `Scanned ${result.pharmaciesScanned} pharmacies. ${result.expiryNotifications + result.expiredNotifications} notifications queued, ${result.emailed} emails sent.`,
+      });
+    } catch (e) {
+      toast.error("Check failed", {
+        description: e instanceof Error ? e.message : "Could not run expiry check",
+      });
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -107,6 +125,19 @@ export function SettingsNotificationsPanel() {
             onCheckedChange={(c) => patch("email", c)}
           />
         </SettingsRow>
+        <div className="flex items-center gap-3 px-5 py-3">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={checking}
+            onClick={() => void handleCheckExpiry()}
+          >
+            {checking ? "Checking…" : "Check expiry now"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Manually scan for expired and expiring stock
+          </p>
+        </div>
         <SettingsRow
           title="Subscription renewal reminders"
           description="Choose when owners are warned before the current plan expires"

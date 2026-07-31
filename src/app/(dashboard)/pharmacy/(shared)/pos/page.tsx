@@ -770,10 +770,13 @@ function POSPageContent() {
             >
               <Brain className="h-4 w-4 text-violet-600" />
             </DashboardButton>
-            <DashboardButton tone="outline" onClick={() => {
-              setQuickAddProductCategory('')
-              setQuickAddDialog('product')
-            }}>
+            <DashboardButton
+              tone="primary"
+              onClick={() => {
+                setQuickAddProductCategory('')
+                setQuickAddDialog('product')
+              }}
+            >
               <Plus className="mr-1.5 h-4 w-4" />
               Add product
             </DashboardButton>
@@ -781,7 +784,7 @@ function POSPageContent() {
               tone="outline"
               className={cn(
                 alertsTotal > 0 &&
-                  "border-orange-300 text-orange-800 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-200 dark:hover:bg-orange-950/40",
+                  "bg-orange-600 text-white hover:bg-orange-50 dark:bg-orange-800 dark:text-orange-200 dark:hover:bg-orange-950/40",
               )}
               onClick={() => setAlertsOpen(true)}
             >
@@ -789,8 +792,8 @@ function POSPageContent() {
                 className={cn(
                   "mr-1.5 h-4 w-4",
                   alertsTotal > 0
-                    ? "text-orange-600 dark:text-orange-400"
-                    : "text-neutral-500",
+                    ? "text-white"
+                    : "text-white",
                 )}
               />
               Alerts

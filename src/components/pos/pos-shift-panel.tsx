@@ -116,8 +116,8 @@ export function PosShiftPanel({
       className={cn(
         "rounded-md px-2 py-1.5",
         shiftRequired && !shift
-          ? "border border-amber-300/80 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/30"
-          : "border border-neutral-200/80 bg-neutral-50/80 dark:border-neutral-800 dark:bg-neutral-900/40",
+          ? "bg-amber-600/80 text-white dark:bg-amber-900/30 dark:text-amber-200"
+          : "bg-neutral-50/80 text-neutral-700 dark:bg-neutral-900/40 dark:text-neutral-200",
       )}
     >
       <div className="flex items-center gap-2">

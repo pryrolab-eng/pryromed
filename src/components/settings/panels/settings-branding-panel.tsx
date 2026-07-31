@@ -32,7 +32,7 @@ export function SettingsBrandingPanel() {
   const [form, setForm] = useState<PharmacyBranding>({
     platformName: "",
     logoUrl: "",
-    primaryColor: "#171717",
+    primaryColor: "#0084FF",
     customDomain: "",
   });
 
