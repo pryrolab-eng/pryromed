@@ -1,0 +1,57 @@
+---
+title: Environment Variables
+description: Complete reference for all Pryrox environment variables
+---
+
+## Backend (.env)
+
+### Required
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/pryrox_db` |
+| `DIRECT_URL` | Direct (non-pooled) PostgreSQL URL for migrations | Same as `DATABASE_URL` for local |
+| `AUTH_SECRET` | JWT signing secret — minimum 32 random characters | `your-32-char-secret-here` |
+| `SMTP_HOST` | SMTP server hostname | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP port | `587` |
+| `SMTP_USER` | SMTP username | `noreply@pryrox.com` |
+| `SMTP_PASS` | SMTP password | `your-smtp-password` |
+| `SMTP_FROM` | Sender email address | `Pryrox <noreply@pryrox.com>` |
+| `NEXT_PUBLIC_APP_URL` | Public URL of the application | `https://app.pryrox.com` |
+
+### EBM / VSDC
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RRA_VSDC_BASE_URL` | Base URL of the local VSDC WAR | `http://localhost:8080` |
+
+### Optional
+
+| Variable | Description |
+|----------|-------------|
+| `REDIS_URL` | Redis connection for queue and cache |
+| `CLOUDINARY_URL` | Cloudinary for logo and file uploads |
+| `POLAR_ACCESS_TOKEN` | Polar payment gateway |
+| `CLICKHOUSE_URL` | ClickHouse for analytics (falls back to Postgres) |
+
+## Frontend (.env)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:3000` |
+| `NEXT_PUBLIC_APP_URL` | Frontend public URL | `http://localhost:3001` |
+
+## Example .env (backend)
+
+```bash
+DATABASE_URL="postgresql://pryrox_user:strongpassword@localhost:5432/pryrox_db"
+DIRECT_URL="postgresql://pryrox_user:strongpassword@localhost:5432/pryrox_db"
+AUTH_SECRET="change-this-to-a-random-32-char-string"
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="your@email.com"
+SMTP_PASS="your-smtp-password"
+SMTP_FROM="Pryrox <noreply@pryrox.com>"
+NEXT_PUBLIC_APP_URL="http://localhost:3001"
+RRA_VSDC_BASE_URL="http://localhost:8080"
+```

@@ -1,0 +1,14 @@
+﻿---
+title: Notifications API
+description: Notification endpoints
+---
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/notifications` | List notifications |
+| POST | `/api/notifications` | Create a notification |
+| PATCH | `/api/notifications/:id/read` | Mark as read |
+| DELETE | `/api/notifications/:id` | Dismiss a notification |
+| GET | `/api/notifications/stream` | SSE stream for live notifications |
+| GET | `/api/notifications/preferences` | Get notification preferences |
+| PUT | `/api/notifications/preferences` | Save notification preferences |

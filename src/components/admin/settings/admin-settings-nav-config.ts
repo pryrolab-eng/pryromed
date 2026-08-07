@@ -4,6 +4,7 @@ import {
   Bell,
   Building2,
   FileText,
+  FlaskConical,
   Globe,
   Shield,
   User,
@@ -43,9 +44,10 @@ export const ADMIN_SETTINGS_NAV_GROUPS: AdminSettingsNavGroup[] = [
     label: "Workspace",
     items: [
       { id: "integrations", label: "Integrations", icon: Zap },
-      { id: "operations", label: "Operations", icon: Building2 },
-      { id: "compliance", label: "Compliance", icon: FileText },
-      { id: "analytics", label: "Analytics", icon: BarChart3 },
+      { id: "operations",   label: "Operations",   icon: Building2 },
+      { id: "compliance",   label: "Compliance",   icon: FileText },
+      { id: "analytics",    label: "Analytics",    icon: BarChart3 },
+      { id: "demo",         label: "Demo Mode",    icon: FlaskConical },
     ],
   },
 ];

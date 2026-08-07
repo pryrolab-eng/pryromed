@@ -5,6 +5,14 @@ export type ScheduledMaintenance = {
   notified: boolean;
 };
 
+export type DemoModeConfig = {
+  enabled: boolean;
+  features: string[];
+  expires_at: string | null;
+  reset_daily: boolean;
+  note?: string;
+};
+
 export type AdminPlatformSettings = {
   platformName: string;
   platformLogoUrl: string;
@@ -25,6 +33,7 @@ export type AdminPlatformSettings = {
   allowUserTwoFactor: boolean;
   /** When true, platform admin console/API requires an allowlisted IP. */
   ipWhitelistEnabled: boolean;
+  demo_mode: DemoModeConfig;
 };
 
 export const defaultAdminPlatformSettings = (): AdminPlatformSettings => ({
@@ -49,4 +58,19 @@ export const defaultAdminPlatformSettings = (): AdminPlatformSettings => ({
   enableAuditLogs: true,
   allowUserTwoFactor: true,
   ipWhitelistEnabled: false,
+  demo_mode: {
+    enabled: false,
+    features: [
+      "app.dashboard",
+      "pos.access",
+      "pos.returns",
+      "inventory.access",
+      "sales.view",
+      "reports.view",
+      "customers.access",
+    ],
+    expires_at: null,
+    reset_daily: false,
+    note: "Demo mode — configure features and enable when ready.",
+  },
 });

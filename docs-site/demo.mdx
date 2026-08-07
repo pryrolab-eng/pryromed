@@ -1,0 +1,70 @@
+---
+title: Live Demo
+description: Try Pryrox instantly with a pre-loaded test pharmacy — no signup required
+---
+
+## Try Pryrox right now
+
+The demo gives you full access to a pre-loaded test pharmacy with sample inventory, customers, and sales data. No account needed.
+
+<Card title="Open Live Demo" icon="play" href="https://app.pryrox.com/demo" color="#171717">
+  Click to open the demo in a new tab. Everything is pre-configured and ready to use.
+</Card>
+
+## Demo credentials
+
+Use these credentials to log in to the demo:
+
+| Field | Value |
+|-------|-------|
+| **Email** | `demo@pryrox.com` |
+| **Password** | `demo123456` |
+| **Pharmacy** | Demo Pharmacy (Kigali) |
+| **Branch** | Head Office (00) |
+
+<Warning>
+  The demo account is shared and resets every 24 hours. Do not enter real patient or business data.
+</Warning>
+
+## What you can test
+
+The demo pharmacy comes pre-loaded with:
+
+<CardGroup cols={2}>
+  <Card title="POS Sales" icon="shopping-cart">
+    Process sales with sample medications, test insurance billing, and print fiscal receipts
+  </Card>
+  <Card title="Inventory" icon="box">
+    Browse stock levels, expiry alerts, and batch management
+  </Card>
+  <Card title="Reports" icon="chart-bar">
+    View sales reports, PLU reports, and daily X/Z report data
+  </Card>
+  <Card title="EBM Settings" icon="receipt">
+    Explore the VSDC configuration page (connected to RRA test environment)
+  </Card>
+</CardGroup>
+
+## Demo limitations
+
+- The EBM integration in demo mode connects to the **RRA test VSDC** — fiscal receipts are test receipts only
+- Sales and inventory changes reset every 24 hours
+- Email notifications are disabled in demo mode
+- You cannot add real staff accounts or change company TIN in demo mode
+
+## Test mode for developers
+
+If you are integrating Pryrox with your own systems, you can use the API in test mode:
+
+```bash
+# All API calls with this header use test/sandbox data
+X-Pryrox-Mode: test
+```
+
+The test mode:
+- Uses a separate test database scoped to your test TIN
+- Connects to the RRA test VSDC server
+- Does not affect production data
+- Resets on demand via `POST /api/test/reset`
+
+See the [API Reference](/api-reference/overview) for test mode details.

@@ -1,0 +1,22 @@
+﻿---
+title: Multi-branch Configuration
+description: Setting up multiple branches in Pryrox
+---
+
+Each branch needs its own EBM settings with a unique `bhf_id`.
+
+## Branch IDs
+
+| Branch | bhf_id |
+|--------|--------|
+| Head office | `00` |
+| Branch 1 | `01` |
+| Branch 2 | `02` |
+
+## Per-branch EBM setup
+
+1. Go to **Settings → Branches → [Branch] → EBM Settings**
+2. Enter the branch-specific `bhf_id` and device serial (each branch needs its own VSDC device or configuration)
+3. Click **Initialize**
+
+Each branch has independent stock, shifts, and receipts. The head office has consolidated reporting.

@@ -1,0 +1,47 @@
+---
+title: Tax Computation
+description: Rwanda VAT tax classes A, B, C, D and how they are calculated
+---
+
+## Tax classes
+
+Rwanda uses four tax classes. All are configured per medication in Pryrox.
+
+| Class | Rate | Description | Label on receipt |
+|-------|------|-------------|-----------------|
+| **A** | 0% | Tax-exempt (AEX) | `A-EX` |
+| **B** | 18% | Standard VAT | `B-18.00%` |
+| **C** | 0% | Zero-rated | `C` |
+| **D** | 0% | Other zero-rated | `D` |
+
+## VAT formula (Class B)
+
+Rwanda uses **tax-inclusive pricing** — the selling price already includes VAT. The tax amount is extracted using:
+
+```
+taxAmtB = round(lineTotal × 18 / 118, 2)
+```
+
+**Example:** Item sells for 1,000 RWF (tax-inclusive)
+```
+taxAmtB = round(1000 × 18 / 118, 2) = round(152.542..., 2) = 152.54 RWF
+```
+
+<Warning>
+  Do NOT calculate VAT as `lineTotal × 0.18`. That would add VAT on top of the price, not extract it. Always use `lineTotal × 18 / 118`.
+</Warning>
+
+## Rounding
+
+All tax amounts are rounded **half-up** to 2 decimal places. If the sum of per-line tax amounts drifts from the total by more than 0.01 due to rounding, Pryrox applies a last-line adjustment to keep the payload internally consistent.
+
+## Default tax class
+
+If a medication has no tax class assigned, Pryrox defaults to **Class B (18%)** and logs a warning in the audit log. Always assign a tax class explicitly when adding medications.
+
+## Receipt display rules
+
+| Condition | Display rule |
+|-----------|-------------|
+| Tax Class B (rate > 0) | Always printed on every receipt, even if no B items were sold |
+| Tax Class A, C, D (rate = 0) | Only printed when an item with that class was sold |

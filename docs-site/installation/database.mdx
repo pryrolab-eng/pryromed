@@ -1,0 +1,33 @@
+﻿---
+title: Database Setup
+description: PostgreSQL setup and migrations for Pryrox
+---
+
+## Create database
+
+```sql
+sudo -u postgres psql
+
+CREATE DATABASE pryrox_db;
+CREATE USER pryrox_user WITH ENCRYPTED PASSWORD 'strongpassword';
+GRANT ALL PRIVILEGES ON DATABASE pryrox_db TO pryrox_user;
+\q
+```
+
+## Run migrations
+
+```bash
+cd /opt/pryrox/backend
+npx prisma migrate deploy
+npx prisma generate
+```
+
+<Warning>
+  Never run `prisma db push --accept-data-loss` on production — it can delete data.
+</Warning>
+
+## Backup
+
+```bash
+pg_dump pryrox_db > backup_$(date +%Y%m%d).sql
+```

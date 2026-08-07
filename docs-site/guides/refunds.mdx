@@ -1,0 +1,27 @@
+﻿---
+title: Refunds & Returns
+description: Processing refunds and returns in Pryrox POS
+---
+
+Refunds must always reference the original sale receipt number. The system issues an **NR (Normal Refund)** receipt with negative amounts, linked to the original NS receipt.
+
+## Steps
+
+1. Click **Returns / Refund** in POS
+2. Enter the original receipt number or scan its QR code
+3. Select items, quantity, reason, and disposition
+4. Click **Process Return**
+
+## Dispositions
+
+| Disposition | Meaning |
+|-------------|---------|
+| **Restock** | Items go back into inventory |
+| **Damaged** | Items removed from stock, logged as damaged |
+| **Destroy** | Items destroyed, removed from stock |
+
+## Rules
+
+- Each original receipt can only be cancelled once
+- Refund amounts are shown with a negative (−) sign on the receipt
+- The NR receipt includes `REF. NORMAL RECEIPT#: [original receipt number]`

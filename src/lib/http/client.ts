@@ -35,10 +35,11 @@ async function tryRefreshSession(): Promise<boolean> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     try {
-      const { url, isNest } = resolveApiUrl("/api/auth/refresh");
-      const res = await fetch(url, {
+      // Always use same-origin proxy route so the browser sends the refresh cookie.
+      // Direct backend calls fail in dev because sameSite=lax blocks cross-origin POST cookies.
+      const res = await fetch("/api/auth/refresh", {
         method: "POST",
-        credentials: isNest ? "include" : "same-origin",
+        credentials: "same-origin",
         cache: "no-store",
       });
       return res.ok;

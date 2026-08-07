@@ -1,0 +1,44 @@
+---
+title: VSDC Error Codes
+description: VSDC error codes returned by the RRA EBM server and how to resolve them
+---
+
+## Common error codes
+
+| Code | Meaning | How to resolve |
+|------|---------|----------------|
+| `000` | Success | No action needed |
+| `40` | VSDC not activated | Contact your VSDC vendor to activate the device for your TIN |
+| `41` | VSDC already activated | Device is already initialized — no action needed |
+| `32` | Wrong TIN | Verify the TIN in **Settings → EBM / VSDC** matches RRA records |
+| `33` | Wrong tax rate | Check tax class configuration on the medication |
+| `34` | Invalid receipt number | Receipt numbering issue — contact support |
+| `881` | Purchase code mandatory | Include a 6-character `prcOrdCd` for B2B sales |
+| `882` | Purchase code invalid | Verify the purchase code provided by the buyer |
+| `883` | Purchase code already used | This purchase code was already applied to another sale |
+| `884` | Invalid customer TIN | Validate the customer TIN via `GET /api/integrations/rra-ebm/customers/:tin` |
+| `90` | Internet error | Check VSDC server internet connectivity |
+| `91` | Backup error | VSDC internal backup failed — contact VSDC vendor |
+| `99` | Hardware intervention needed | Contact VSDC vendor immediately |
+
+## Warning codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | No warning |
+| `1` | VSDC internal memory >90% full |
+| `2` | VSDC internal memory >95% full |
+
+<Warning>
+  If you see warning code `2`, contact your VSDC vendor urgently to free up internal memory before the device stops issuing receipts.
+</Warning>
+
+## Connection errors
+
+These are Pryrox-side errors, not VSDC codes:
+
+| Error | Cause | Action |
+|-------|-------|--------|
+| `VSDC device is not initialized` | Settings saved but initialization not completed | Go to EBM Settings and click **Re-initialize** |
+| `VSDC request timed out` | VSDC WAR not responding within 5s | Check Tomcat is running; sale is queued automatically |
+| `EBM not configured` | No EBM settings saved for this pharmacy | Complete setup in **Settings → EBM / VSDC** |

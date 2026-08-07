@@ -1,0 +1,143 @@
+---
+title: EBM / VSDC API
+description: API endpoints for VSDC integration, fiscal receipts, and RRA compliance
+---
+
+## Settings
+
+<ParamField path="PUT /integrations/rra-ebm/settings" type="endpoint">
+  Save EBM settings and trigger VSDC device initialization.
+</ParamField>
+
+**Request body:**
+```json
+{
+  "rra_tin": "999000099",
+  "vsdc_base_url": "http://localhost:8080",
+  "bhf_id": "00",
+  "device_serial": "dvc999993204",
+  "device_number": "9990000997006310"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "initialized": true,
+  "initResult": { "ok": true, "ebmStatus": "submitted" }
+}
+```
+
+---
+
+## Status
+
+```
+GET /integrations/rra-ebm/status
+```
+
+**Response:**
+```json
+{
+  "connectivity": "online",
+  "queuedCount": 0,
+  "lastSuccessfulSubmissionAt": "2026-05-08T14:23:11.000Z"
+}
+```
+
+---
+
+## Device initialization
+
+```
+POST /integrations/rra-ebm/initialize
+```
+
+Manually re-initialize the VSDC device. Returns the SDC ID and MRC on success.
+
+---
+
+## Item sync
+
+```
+POST /integrations/rra-ebm/sync-items
+```
+
+**Response:**
+```json
+{
+  "total": 45,
+  "synced": 45,
+  "failed": 0,
+  "errors": []
+}
+```
+
+---
+
+## Fiscal receipt
+
+```
+POST /integrations/rra-ebm/fiscal-receipt/:saleId
+```
+
+Returns the full fiscal receipt data including QR code string and SDC Information block for printing.
+
+---
+
+## System codes
+
+```
+GET /integrations/rra-ebm/codes
+```
+
+Returns all VSDC system codes (tax types, payment methods, etc.) grouped by category.
+
+---
+
+## Item classification
+
+```
+GET /integrations/rra-ebm/item-classes
+```
+
+Returns UNSPSC item classification codes from the VSDC.
+
+---
+
+## Customer validation
+
+```
+GET /integrations/rra-ebm/customers/:tin
+```
+
+Validates a customer TIN against the VSDC and returns their name and status.
+
+---
+
+## Purchases
+
+```
+GET /integrations/rra-ebm/purchases
+POST /integrations/rra-ebm/purchases/:id/confirm
+```
+
+---
+
+## Reports
+
+```
+GET /integrations/rra-ebm/x-report
+GET /api/reports/plu
+GET /api/reports/detailed?type=sales|purchases|stock|items|importation
+```
+
+---
+
+## Import items
+
+```
+POST /integrations/rra-ebm/import-items
+POST /integrations/rra-ebm/import-items/status
+```

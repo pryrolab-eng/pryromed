@@ -1,0 +1,35 @@
+---
+title: Receipt Types
+description: All RRA-required receipt types supported by Pryrox
+---
+
+## Receipt type table
+
+| Label | Type | Transaction | VSDC Signed | Notes |
+|-------|------|-------------|-------------|-------|
+| **NS** | Normal | Sale | ✅ Yes | Standard sale receipt |
+| **NR** | Normal | Refund | ✅ Yes | Negative amounts, links to original NS |
+| **CS** | Copy | Sale | ✅ Yes (copy) | Reprint marked COPY |
+| **CR** | Copy | Refund | ✅ Yes (copy) | Reprint marked COPY |
+| **TS** | Training | Sale | ❌ No | Practice only — not reported to RRA |
+| **TR** | Training | Refund | ❌ No | Practice only — not reported to RRA |
+| **PS** | Proforma | Sale | ❌ No | Advance/quotation receipt |
+
+## QR code format
+
+Every NS and NR receipt includes a QR code in this format:
+
+```
+{ddmmyyyy}#{hhmmss}#{sdcId}#{rcptNo}#{intrlData}#{rcptSign}
+```
+
+**Example:**
+```
+25052012#110735#SDC001000001#168/258#TE68-SLA2-34J5-EAV3#V249-J39C
+```
+
+## Non-official receipts
+
+CS, CR, TS, TR, and PS receipts are **not official fiscal documents**. They must display:
+- The receipt type label (COPY / TRAINING MODE / PROFORMA) prominently at the top
+- `THIS IS NOT AN OFFICIAL RECEIPT` below the amount totals, in text at least twice the size of the amount text

@@ -237,6 +237,7 @@ function useAdminSettingsState(): AdminSettingsContextValue {
       setSettings((prev) => ({
         ...prev,
         ...supportedRaw,
+        ...(supportedRaw.demo_mode !== undefined ? { demo_mode: supportedRaw.demo_mode } : {}),
         apiRateLimit: parseNumberSetting(
           supportedRaw.apiRateLimit,
           prev.apiRateLimit,
@@ -253,6 +254,7 @@ function useAdminSettingsState(): AdminSettingsContextValue {
           supportedRaw.dataRetentionDays,
           prev.dataRetentionDays,
         ),
+        demo_mode: supportedRaw.demo_mode ?? prev.demo_mode,
       }));
     }
     if (payload.analytics) {
@@ -301,6 +303,7 @@ function useAdminSettingsState(): AdminSettingsContextValue {
         updateAdminSystemSettings(settings as Record<string, unknown>),
         fetch(resolveApiUrl("/api/me/profile").url, {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: profile.name,

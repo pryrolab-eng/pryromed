@@ -1,0 +1,63 @@
+---
+title: Offline Queue
+description: How Pryrox handles VSDC connectivity issues without blocking sales
+---
+
+## Overview
+
+If the VSDC is unreachable when a sale completes, Pryrox **does not block the sale**. Instead it queues the VSDC submission and retries automatically when connectivity is restored.
+
+## How it works
+
+<Steps>
+  <Step title="Sale completes normally">
+    The cashier completes the sale. The POS response succeeds immediately.
+  </Step>
+  <Step title="VSDC call fails">
+    The VSDC request times out (5,000ms) or gets a network error.
+  </Step>
+  <Step title="Queued">
+    The sale payload is stored in the `ebm_queue` database table with status `queued`. The receipt is marked **"EBM pending — not yet a valid fiscal document."**
+  </Step>
+  <Step title="Automatic retry">
+    A background job retries queued entries using exponential back-off.
+  </Step>
+  <Step title="Submitted">
+    When the VSDC responds successfully, the receipt is updated with the SDC Information block and marked **submitted**.
+  </Step>
+</Steps>
+
+## Retry schedule
+
+| Attempt | Wait time |
+|---------|-----------|
+| 1 | 30 seconds |
+| 2 | 60 seconds |
+| 3 | 120 seconds |
+| 4 | 240 seconds |
+| 5 | 480 seconds |
+
+After 5 failed attempts, the entry is marked `failed` and a **critical alert** is sent to the pharmacy administrator.
+
+## VSDC health monitoring
+
+Pryrox checks VSDC connectivity every **60 seconds** while a cashier shift is open.
+
+- When the VSDC goes offline → a `"VSDC offline"` warning appears in the POS
+- When the VSDC comes back → the queue drains automatically within 60 seconds
+- After 5+ consecutive failures (≥5 minutes offline) → a critical alert is created
+
+## Checking queue status
+
+```bash
+GET /api/integrations/rra-ebm/status
+```
+
+Response:
+```json
+{
+  "connectivity": "online",
+  "queuedCount": 0,
+  "lastSuccessfulSubmissionAt": "2026-05-08T14:23:11.000Z"
+}
+```

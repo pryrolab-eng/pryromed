@@ -1,0 +1,48 @@
+﻿---
+title: Receipts
+description: Understanding and printing Pryrox fiscal receipts
+---
+
+Every completed sale generates a fiscal receipt containing the **SDC Information block** required by RRA.
+
+## Receipt anatomy
+
+```
+Trade Name
+Address Line 1
+Address Line 2
+TIN: 999000099
+─────────────────────────
+Amoxicillin 250mg x2    3,000 RWF  B
+─────────────────────────
+TOTAL                   3,000 RWF
+TOTAL B-18.00%          3,000 RWF
+TOTAL TAX B               457.63 RWF
+─────────────────────────
+CASH                    3,000 RWF
+ITEMS NUMBER: 1
+─────────────────────────
+SDC INFORMATION
+Date: 08/05/2026  Time: 14:23:11
+SDC ID: SDC001000001
+RECEIPT NUMBER: 168/258 NS
+Internal Data: TE68-SLA2-34J5-EAV3
+Signature: V249-J39C-FJ48-HE2W
+[QR CODE]
+─────────────────────────
+RECEIPT NUMBER: 152
+DATE: 08/05/2026  TIME: 14:25:00
+MRC: AAACC123456
+```
+
+## Print formats
+
+| Format | Use case |
+|--------|---------|
+| `roll` | Thermal 80mm printer (default) |
+| `a5` | A5 paper |
+| `a4` | A4 paper / full invoice |
+
+## Reprint as COPY
+
+To reprint a receipt, find it in **Sales History** and click **Print Copy**. The reprint is issued as **CS** (Copy Sale) or **CR** (Copy Refund) and clearly marked `COPY` and `THIS IS NOT AN OFFICIAL RECEIPT`.

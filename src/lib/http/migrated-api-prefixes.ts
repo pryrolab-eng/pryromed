@@ -36,6 +36,7 @@ export const MIGRATED_API_PREFIXES = [
   "/api/sign-in",
   "/api/onboarding",
   "/api/admin",
+  "/api/demo",
   "/api/superadmin",
   "/api/files",
   "/api/uploads",

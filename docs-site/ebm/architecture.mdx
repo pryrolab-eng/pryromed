@@ -1,0 +1,67 @@
+---
+title: Architecture
+description: Technical architecture of the Pryrox EBM/VSDC integration
+---
+
+## System diagram
+
+```
+┌─────────────────────────────────────────────┐
+│              Pryrox Backend (NestJS)         │
+│                                              │
+│  PosSaleService                              │
+│       │ sale completed                       │
+│       ▼                                      │
+│  EBM Adapter (lib/ebm/)                      │
+│       │ POST /trnsSales/saveSales            │
+│       │ 5,000ms timeout                      │
+│       ▼                                      │
+│  VsdcHttpAdapter                             │
+└──────────────────┬──────────────────────────┘
+                   │ HTTP/JSON
+                   ▼
+┌─────────────────────────────────────────────┐
+│         VSDC WAR (localhost:8080)            │
+│         Apache Tomcat + Java                 │
+│         RRA VSDC API v1.0.5                  │
+└──────────────────┬──────────────────────────┘
+                   │ HTTPS + SSL
+                   ▼
+┌─────────────────────────────────────────────┐
+│         RRA EBM 2.1 API Server              │
+│         Rwanda Revenue Authority            │
+└─────────────────────────────────────────────┘
+```
+
+## Key components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `IEbmAdapter` | `lib/ebm/ebm.adapter.interface.ts` | Interface — all VSDC operations |
+| `VsdcHttpAdapter` | `adapters/vsdc-http.adapter.ts` | Concrete VSDC REST client |
+| `EbmQueueService` | `services/ebm-queue.service.ts` | Offline queue with retry |
+| `EbmHealthService` | `services/ebm-health.service.ts` | 60s connectivity polling |
+| `TaxComputationService` | `services/tax-computation.service.ts` | Rwanda VAT calculation |
+| `FiscalReceiptRenderer` | `services/fiscal-receipt.renderer.ts` | QR code + receipt formatting |
+| `VsdcPayloadBuilder` | `lib/vsdc-payload.builder.ts` | VSDC request construction |
+
+## VSDC API endpoints used
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /initializer/selectInitInfo` | Device initialization |
+| `POST /trnsSales/saveSales` | Submit sale (NS) or refund (NR) |
+| `POST /trnsSales/saveZReport` | Z-Report on shift close |
+| `POST /trnsSales/selectSalesInfo` | X-Report |
+| `POST /items/saveItems` | Register medications |
+| `GET /items/selectItems` | Fetch registered items |
+| `GET /code/selectCodes` | System codes (tax types, payment methods) |
+| `GET /itemClass/selectItemsClass` | UNSPSC item classification codes |
+| `POST /customers/selectCustomer` | Validate customer TIN |
+| `GET /notices/selectNotices` | RRA notices |
+| `POST /imports/selectImportItems` | Importation details |
+| `POST /imports/updateImportItems` | Update import status |
+| `POST /trnsPurchase/selectTrnsPurchaseSales` | List pending purchases |
+| `POST /trnsPurchase/savePurchases` | Confirm purchase |
+| `POST /saveStockItems/saveStockItems` | Stock in/out |
+| `POST /stockMaster/saveStockMaster` | Stock balance update |

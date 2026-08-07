@@ -21,6 +21,7 @@ type UseNotificationStreamResult = {
   connected: boolean;
   refresh: () => Promise<void>;
   markRead: (id: string) => Promise<void>;
+  dismiss: (id: string) => Promise<void>;
 };
 
 function notificationScopeFromPath(pathname: string | null): "platform" | "pharmacy" {
@@ -152,7 +153,22 @@ export function useNotificationStream(): UseNotificationStreamResult {
     [refresh, scope],
   );
 
+  const dismiss = useCallback(
+    async (id: string) => {
+      // Optimistically remove from list
+      setNotifications((current) => current.filter((n) => n.id !== id));
+      seenIds.current.delete(id);
+      try {
+        const { url } = resolveApiUrl(withScope(`/api/notifications/${id}`, scope));
+        await fetch(url, { method: "DELETE", credentials: "include" });
+      } catch {
+        void refresh();
+      }
+    },
+    [refresh, scope],
+  );
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  return { notifications, unreadCount, connected, refresh, markRead };
+  return { notifications, unreadCount, connected, refresh, markRead, dismiss };
 }

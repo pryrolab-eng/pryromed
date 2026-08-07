@@ -1,0 +1,38 @@
+﻿---
+title: Item Sync
+description: Synchronising your medication catalogue with the VSDC
+---
+
+Before processing sales, all medications must be registered with the VSDC so their item codes are recognised.
+
+## Manual sync
+
+Go to **Settings → EBM / VSDC** and click **Sync Items**, or call:
+
+```bash
+POST /api/integrations/rra-ebm/sync-items
+```
+
+## Automatic sync
+
+When a new medication is created or updated in Pryrox, it is automatically submitted to the VSDC via `POST /items/saveItems`.
+
+## Item code format
+
+```
+{CountryCode}{ProductType}{PackagingUnit}{QuantityUnit}{Sequence}
+Example: RW2BEXUXXX0000001
+  RW = Rwanda
+  2  = Finished Product
+  BE = Bundle
+  XU = Unit
+  XXX0000001 = sequence
+```
+
+## Fetch UNSPSC codes
+
+To get classification codes from the VSDC:
+
+```bash
+GET /api/integrations/rra-ebm/item-classes
+```

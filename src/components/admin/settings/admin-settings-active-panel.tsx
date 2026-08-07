@@ -11,6 +11,7 @@ import { AdminSettingsOperationsPanel } from "@/components/admin/settings/panels
 import { AdminSettingsProfilePanel } from "@/components/admin/settings/panels/admin-settings-profile-panel";
 import { AdminSettingsSecurityPanel } from "@/components/admin/settings/panels/admin-settings-security-panel";
 import { AdminSettingsTenantsPanel } from "@/components/admin/settings/panels/admin-settings-tenants-panel";
+import { AdminDemoPanel } from "@/components/admin/demo/admin-demo-panel";
 
 const PANELS: Record<AdminSettingsTabValue, ComponentType> = {
   profile: AdminSettingsProfilePanel,
@@ -22,6 +23,7 @@ const PANELS: Record<AdminSettingsTabValue, ComponentType> = {
   compliance: AdminSettingsCompliancePanel,
   operations: AdminSettingsOperationsPanel,
   analytics: AdminSettingsAnalyticsPanel,
+  demo: AdminDemoPanel,
 };
 
 export function AdminSettingsActivePanel({ tab }: { tab: AdminSettingsTabValue }) {

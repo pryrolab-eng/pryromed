@@ -1,0 +1,115 @@
+---
+title: User Manual
+description: Complete guide for cashiers and pharmacy managers
+---
+
+## Overview
+
+This manual covers daily POS operations for cashiers and pharmacy managers — from opening a shift to processing sales, refunds, and Z-reports.
+
+<Tip>
+  New to Pryrox? [Try the demo](/demo) to follow along with real sample data.
+</Tip>
+
+## Opening a cashier shift
+
+You must open a shift before processing any sale. The system blocks transactions if no shift is open.
+
+<Steps>
+  <Step title="Open the Shift panel">
+    In the POS screen, click the **Shift** panel button.
+  </Step>
+  <Step title="Enter opening cash">
+    Enter the cash amount currently in the till.
+  </Step>
+  <Step title="Confirm">
+    Click **Open Shift**. The system records your name and the opening time.
+  </Step>
+</Steps>
+
+## Processing a Normal Sale (NS)
+
+<Steps>
+  <Step title="Search for the product">
+    Type the medication name, scan the barcode, or filter by category.
+  </Step>
+  <Step title="Add to cart">
+    Click the product to add it. Adjust quantity if needed. The system automatically selects the earliest-expiry batch (FEFO).
+  </Step>
+  <Step title="Handle warnings">
+    - **Near-expiry warning**: acknowledge to continue selling
+    - **Prescription required**: confirm prescriber name and patient name
+  </Step>
+  <Step title="Select payment method">
+    Choose Cash, Card, Mobile Money, Insurance, or Split payment.
+  </Step>
+  <Step title="Complete the sale">
+    Click **Complete Sale**. The sale is submitted to the VSDC and a signed fiscal receipt is generated.
+  </Step>
+</Steps>
+
+<Warning>
+  If the VSDC does not respond within 5 seconds, the sale is queued automatically. The receipt will show **"EBM pending"** until the VSDC reconnects.
+</Warning>
+
+## Fiscal receipt fields
+
+Every normal sale receipt includes an **SDC Information block** required by RRA:
+
+| Field | Description |
+|-------|-------------|
+| **SDC ID** | VSDC serial number assigned to your pharmacy |
+| **MRC** | Machine Registration Code |
+| **Receipt Number** | Sequential counter, e.g. `168/258 NS` |
+| **Date/Time** | Authoritative VSDC timestamp |
+| **Internal Data** | Encrypted RRA verification data |
+| **Receipt Signature** | Cryptographic proof of authenticity |
+| **QR Code** | Encodes date, time, SDC ID, receipt number, internal data, signature |
+
+## Processing a Refund (NR)
+
+<Steps>
+  <Step title="Open Returns">
+    Click **Returns / Refund** in the POS screen.
+  </Step>
+  <Step title="Find the original sale">
+    Enter the receipt number or scan the QR code from the original receipt.
+  </Step>
+  <Step title="Select items and reason">
+    Choose items to return, quantity, reason, and disposition (restock / damaged / destroy).
+  </Step>
+  <Step title="Process">
+    Click **Process Return**. An NR receipt is issued with negative amounts, linked to the original NS receipt.
+  </Step>
+</Steps>
+
+## Training Mode
+
+<Warning>
+  Training mode must be activated using a **dedicated button** — it cannot be entered accidentally during a normal sale (RRA requirement).
+</Warning>
+
+1. Click the **Training Mode** toggle (separate from normal sale buttons)
+2. A prominent **TRAINING MODE** banner appears
+3. All receipts are TS/TR type — NOT submitted to the VSDC
+4. Click the toggle again to return to normal sales mode
+
+## Closing a shift
+
+1. Open the **Shift** panel
+2. Click **Close Shift**
+3. Enter the actual cash in the till
+4. Click **Confirm Close**
+
+The system automatically submits the **Z-Report** to the VSDC when you close the shift.
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Insurance billing" href="/guides/insurance" icon="shield">
+    Configure and use insurance payment
+  </Card>
+  <Card title="EBM receipt types" href="/ebm/receipt-types" icon="receipt">
+    NS, NR, CS, CR, TS, TR, PS explained
+  </Card>
+</CardGroup>

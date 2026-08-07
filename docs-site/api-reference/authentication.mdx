@@ -1,0 +1,36 @@
+﻿---
+title: Authentication
+description: How to authenticate with the Pryrox API
+---
+
+## Session cookie
+
+The standard authentication method uses a session cookie set by signing in:
+
+```bash
+POST /api/auth/signin
+Content-Type: application/json
+
+{ "email": "user@example.com", "password": "yourpassword" }
+```
+
+The response sets a `pryrox_session` cookie that is sent automatically on subsequent requests.
+
+## Test mode
+
+Add this header to use the sandbox environment:
+
+```bash
+X-Pryrox-Mode: test
+```
+
+This uses pre-seeded demo data and the RRA test VSDC server. No production data is affected.
+
+## Demo credentials
+
+For the public demo:
+
+```
+Email:    demo@pryrox.com
+Password: demo123456
+```

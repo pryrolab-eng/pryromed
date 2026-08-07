@@ -1,0 +1,70 @@
+---
+title: EBM / VSDC Overview
+description: How Pryrox integrates with the Rwanda Revenue Authority VSDC
+---
+
+## What is EBM?
+
+**Electronic Billing Machine (EBM)** is the Rwanda Revenue Authority's fiscal invoicing system. Every taxable sale in Rwanda must produce a signed fiscal receipt reported to RRA in real time.
+
+Pryrox is classified as a **Certified Invoicing System (CIS)** under the RRA EBM framework. It connects to a **Virtual Sales Data Controller (VSDC)** — a Java WAR application deployed locally — which signs every receipt and reports to the RRA back office.
+
+## Architecture
+
+```
+Pryrox POS (sale completed)
+        │
+        ▼
+EBM Adapter (lib/ebm/)
+        │  POST /trnsSales/saveSales
+        ▼
+VSDC WAR (localhost:8080)
+        │  HTTPS + SSL
+        ▼
+RRA EBM 2.1 API Server
+        │
+        ▼  rcptNo, intrlData, rcptSign, sdcId, mrcNo
+Pryrox stores fiscal data → Receipt printed with SDC block + QR code
+```
+
+## How it works
+
+<Steps>
+  <Step title="Sale completed">
+    When a cashier completes a sale in Pryrox POS, the EBM Adapter is called automatically.
+  </Step>
+  <Step title="VSDC submission">
+    The adapter sends the sale data to the local VSDC via `POST /trnsSales/saveSales` with a 5,000ms timeout.
+  </Step>
+  <Step title="Receipt signing">
+    The VSDC returns `rcptNo` (receipt counter), `intrlData` (internal data), `rcptSign` (signature), `sdcId`, and `mrcNo`.
+  </Step>
+  <Step title="Storage and printing">
+    Pryrox stores the fiscal data on the sale record and renders the receipt with the SDC Information block and QR code.
+  </Step>
+</Steps>
+
+## Offline handling
+
+If the VSDC is unreachable (timeout, network error), the sale is **queued automatically** and the receipt is marked pending. When the VSDC reconnects, all queued receipts are submitted in order.
+
+<Card title="Offline Queue" icon="wifi-slash" href="/ebm/offline-queue">
+  Learn how the retry queue works with exponential back-off
+</Card>
+
+## Quick links
+
+<CardGroup cols={2}>
+  <Card title="Receipt Types" icon="receipt" href="/ebm/receipt-types">
+    NS, NR, CS, CR, TS, TR, PS explained
+  </Card>
+  <Card title="Tax Computation" icon="calculator" href="/ebm/tax-computation">
+    How Rwanda VAT classes A, B, C, D are calculated
+  </Card>
+  <Card title="Z-Report" icon="chart-bar" href="/ebm/z-report">
+    End-of-day fiscal report on shift close
+  </Card>
+  <Card title="Error Codes" icon="triangle-exclamation" href="/ebm/error-codes">
+    VSDC error codes and how to resolve them
+  </Card>
+</CardGroup>

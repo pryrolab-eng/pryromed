@@ -1,0 +1,32 @@
+﻿---
+title: Insurance Billing
+description: Processing insurance-covered sales in Pryrox POS
+---
+
+## How it works
+
+1. Select **Insurance** as the payment method (or use Split)
+2. Choose the insurance provider (RSSB, MMI, etc.)
+3. Enter the patient's membership/beneficiary number
+4. Pryrox calculates coverage and patient copay automatically
+5. Both amounts appear as separate lines on the fiscal receipt
+
+## Receipt layout (insurance)
+
+```
+Amoxicillin 250mg x2    3,000 RWF
+─────────────────────────
+TOTAL                   3,000 RWF
+TOTAL TAX B               457.63 RWF
+─────────────────────────
+Insurance (RSSB 80%)   −2,400 RWF
+Patient pays              600 RWF
+```
+
+## VSDC payload
+
+For insurance sales, Pryrox includes **two separate item entries** in the VSDC payload — one for the insurer's share and one for the patient copay — so the fiscal receipt correctly itemises both.
+
+## Claims
+
+Insurance claims are created automatically and available in **Reports → Insurance Claims**.

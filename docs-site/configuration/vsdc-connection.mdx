@@ -1,0 +1,71 @@
+---
+title: VSDC Connection
+description: Configure Pryrox to connect to your local VSDC instance
+---
+
+## Prerequisites
+
+Before configuring the VSDC connection you need:
+
+- VSDC WAR file deployed on Apache Tomcat (from your RRA-certified vendor)
+- RRA-issued TIN for the pharmacy
+- Device serial number and device number from your VSDC vendor
+- Branch ID (use `00` for head office)
+
+## Step 1 — Deploy the VSDC WAR
+
+```bash
+cp vsdc.war /opt/tomcat/webapps/
+# Tomcat deploys it automatically
+```
+
+Verify it's running:
+```bash
+curl http://localhost:8080/initializer/selectInitInfo
+```
+
+## Step 2 — Configure in Pryrox
+
+Go to **Settings → EBM / VSDC Integration** and fill in:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| **RRA TIN** | 9-digit pharmacy Tax Identification Number | `999000099` |
+| **VSDC Base URL** | URL of the local VSDC WAR | `http://localhost:8080` |
+| **Branch ID** | 2-character branch code (00 = head office) | `00` |
+| **Device Serial** | Provided by VSDC vendor | `dvc999993204` |
+| **Device Number** | Provided by VSDC vendor | `9990000997006310` |
+
+Click **Save Settings**. Initialization is triggered automatically.
+
+## Step 3 — Verify initialization
+
+After saving, the settings page shows:
+- ✅ **Device initialized**
+- **SDC ID** — the VSDC serial number assigned to your pharmacy
+- **MRC** — Machine Registration Code (printed on every receipt)
+
+If initialization fails, see [Error Codes](/ebm/error-codes).
+
+## Step 4 — Test the connection
+
+Click **Test Connection** on the EBM settings page. This calls the VSDC initialization endpoint and shows the result.
+
+Or via API:
+```bash
+POST /api/integrations/rra-ebm/initialize
+```
+
+## Step 5 — Sync items
+
+After configuring the connection, sync your medication catalogue to the VSDC:
+
+```bash
+POST /api/integrations/rra-ebm/sync-items
+```
+
+Or click **Sync Items** on the settings page.
+
+<Check>
+  When the sync completes with 0 failed items, you are ready to process sales.
+</Check>

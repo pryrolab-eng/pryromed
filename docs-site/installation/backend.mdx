@@ -1,0 +1,32 @@
+﻿---
+title: Backend Installation
+description: Installing the Pryrox NestJS API server
+---
+
+## Steps
+
+```bash
+cd /opt/pryrox/backend
+npm install
+cp .env.example .env
+# Edit .env — see Environment Variables
+npm run build
+npm run start:prod
+```
+
+The API runs at `http://localhost:3000`.
+
+## Running migrations
+
+```bash
+npx prisma migrate deploy
+npx prisma generate
+```
+
+## Production with PM2
+
+```bash
+npm install -g pm2
+pm2 start dist/main.js --name pryrox-api
+pm2 save && pm2 startup
+```

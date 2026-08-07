@@ -1,0 +1,46 @@
+---
+title: Z-Report
+description: End-of-day fiscal report submitted to the VSDC when a cashier closes their shift
+---
+
+## What is the Z-Report?
+
+The **Z-Report** is the official RRA end-of-day fiscal report. It summarises all NS and NR receipts for the day and is submitted to the VSDC when a cashier closes their shift.
+
+<Info>
+  The Z-Report is submitted **automatically** when you close a cashier shift. You do not need to trigger it manually.
+</Info>
+
+## When it runs
+
+- Triggered by: `POST /api/pos/shifts` with `action: "close"`
+- Submitted to VSDC within **30 seconds** of shift close
+- Each shift can only have one Z-Report — the system prevents duplicates
+
+## What it contains
+
+The Z-Report payload includes:
+
+- Pharmacy TIN and branch ID
+- Shift date
+- Total NS sales amount
+- Total NR refund amount
+- Total transaction count
+- Tax-class breakdown: `taxAmtA`, `taxAmtB`, `taxAmtC`, `taxAmtD`
+
+## If the Z-Report fails
+
+If the VSDC returns an error or times out:
+
+- The **shift still closes** — the Z-Report failure does not block the cashier
+- The Z-Report is marked `failed`
+- A **high-severity alert** is created for the pharmacy administrator
+- The administrator can retry from the EBM settings page
+
+## X-Report (intra-day)
+
+The **X-Report** shows sales totals since the last Z-Report without resetting counters. Use it to check intra-day totals at any time.
+
+```bash
+GET /api/integrations/rra-ebm/x-report
+```

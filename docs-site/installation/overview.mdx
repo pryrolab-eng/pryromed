@@ -1,0 +1,47 @@
+---
+title: Installation Overview
+description: How to deploy Pryrox in your environment
+---
+
+## Deployment options
+
+<CardGroup cols={2}>
+  <Card title="Cloud hosted" icon="cloud">
+    Pryrox can run on any Node.js-capable cloud platform — Vercel, Railway, Render, DigitalOcean, or your own VPS.
+  </Card>
+  <Card title="On-premise" icon="server">
+    For pharmacies that require local deployment, Pryrox can run on-premise alongside the VSDC WAR on the same server.
+  </Card>
+</CardGroup>
+
+## Components
+
+| Component | Technology | Port |
+|-----------|-----------|------|
+| Backend API | NestJS (Node.js) | 3000 |
+| Frontend | Next.js | 3001 |
+| Database | PostgreSQL | 5432 |
+| VSDC WAR | Java + Tomcat | 8080 |
+
+## Installation steps
+
+<Steps>
+  <Step title="System requirements">
+    Check [requirements](/installation/requirements) for hardware and software prerequisites.
+  </Step>
+  <Step title="Database">
+    Set up [PostgreSQL](/installation/database) and run migrations.
+  </Step>
+  <Step title="Backend">
+    Install and configure the [NestJS API](/installation/backend).
+  </Step>
+  <Step title="Frontend">
+    Install and configure the [Next.js app](/installation/frontend).
+  </Step>
+  <Step title="Environment variables">
+    Configure all [required environment variables](/installation/environment-variables).
+  </Step>
+  <Step title="VSDC">
+    Deploy the VSDC WAR and complete [EBM configuration](/configuration/vsdc-connection).
+  </Step>
+</Steps>

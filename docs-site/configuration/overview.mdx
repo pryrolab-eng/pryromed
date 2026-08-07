@@ -1,0 +1,20 @@
+﻿---
+title: Configuration Overview
+description: Configure Pryrox for your pharmacy
+---
+
+<Steps>
+  <Step title="Pharmacy profile">Set TIN, name, address in **Settings → Pharmacy Profile**</Step>
+  <Step title="Tax rates">Assign Tax Class A/B/C/D to each medication</Step>
+  <Step title="VSDC connection">Enter VSDC URL, branch ID, device serial in **Settings → EBM**</Step>
+  <Step title="Device initialization">Click Save — initialization triggers automatically</Step>
+  <Step title="Item sync">Sync medication catalogue to VSDC</Step>
+  <Step title="Verify">Process a test sale and confirm the SDC block appears on the receipt</Step>
+</Steps>
+
+<CardGroup cols={2}>
+  <Card title="VSDC Connection" href="/configuration/vsdc-connection" icon="plug">Full VSDC setup guide</Card>
+  <Card title="Tax Rates" href="/configuration/tax-rates" icon="percent">Assign A/B/C/D tax classes</Card>
+  <Card title="Item Sync" href="/configuration/item-sync" icon="arrows-rotate">Sync medications to VSDC</Card>
+  <Card title="Branches" href="/configuration/branches" icon="building">Multi-branch configuration</Card>
+</CardGroup>

@@ -1,0 +1,40 @@
+﻿---
+title: Frontend Installation
+description: Installing the Pryrox Next.js application
+---
+
+## Steps
+
+```bash
+cd /opt/pryrox/frontend
+npm install
+cp .env.example .env
+# Set NEXT_PUBLIC_API_URL=http://localhost:3000
+npm run build
+npm run start
+```
+
+The app runs at `http://localhost:3001`.
+
+## Production with PM2
+
+```bash
+pm2 start npm --name pryrox-web -- run start
+pm2 save
+```
+
+## Nginx reverse proxy (optional)
+
+```nginx
+server {
+  listen 80;
+  server_name app.pryrox.com;
+  location / { proxy_pass http://localhost:3001; }
+}
+
+server {
+  listen 80;
+  server_name api.pryrox.com;
+  location / { proxy_pass http://localhost:3000; }
+}
+```

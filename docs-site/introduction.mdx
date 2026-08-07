@@ -1,0 +1,54 @@
+---
+title: Introduction
+description: Pryrox — multi-tenant pharmacy management platform for Rwanda
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="Pryrox dashboard"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="Pryrox dashboard"
+/>
+
+## What is Pryrox?
+
+Pryrox is a cloud-based pharmacy management platform built for Rwanda. It handles everything a pharmacy needs — from point-of-sale to inventory, insurance billing, and full compliance with the **Rwanda Revenue Authority (RRA) Electronic Billing Machine (EBM)** requirements.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running in under 10 minutes
+  </Card>
+  <Card title="Live Demo" icon="play" href="/demo">
+    Try Pryrox with a pre-loaded test account — no signup needed
+  </Card>
+  <Card title="EBM / VSDC Guide" icon="receipt" href="/ebm/overview">
+    Understand how Pryrox integrates with the RRA VSDC
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Full REST API documentation
+  </Card>
+</CardGroup>
+
+## Key features
+
+<AccordionGroup>
+  <Accordion title="Point of Sale (POS)">
+    Fast, barcode-enabled sales screen with FEFO batch selection, near-expiry warnings, prescription gating, multi-payment support (cash, card, mobile money, insurance, split), and cashier shift management.
+  </Accordion>
+  <Accordion title="RRA EBM Compliance">
+    Full VSDC API integration — NS/NR/CS/CR/TS/TR/PS receipt types, receipt signing, QR codes, Z-reports, stock synchronisation, and offline queue with automatic retry.
+  </Accordion>
+  <Accordion title="Inventory Management">
+    Multi-branch stock control, batch tracking, expiry alerts, purchase orders, stock transfers, and low-stock notifications.
+  </Accordion>
+  <Accordion title="Insurance Billing">
+    Integrated insurance provider management, formulary coverage, copay calculation, and insurance claim generation.
+  </Accordion>
+  <Accordion title="Multi-branch Support">
+    Each branch operates independently with its own stock and receipts, while the head office has consolidated visibility and reporting.
+  </Accordion>
+</AccordionGroup>

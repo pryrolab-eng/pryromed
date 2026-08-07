@@ -8,6 +8,7 @@ export const ADMIN_SETTINGS_TAB_VALUES = [
   "compliance",
   "operations",
   "analytics",
+  "demo",
 ] as const;
 
 export type AdminSettingsTabValue = (typeof ADMIN_SETTINGS_TAB_VALUES)[number];

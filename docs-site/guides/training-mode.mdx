@@ -1,0 +1,29 @@
+﻿---
+title: Training Mode
+description: Practice using the POS without submitting real data to RRA
+---
+
+Training mode allows staff to practise the POS without affecting real fiscal records. Training receipts (**TS/TR**) are **not submitted to the VSDC**.
+
+<Warning>
+  Training mode must be activated using a **dedicated button** separate from the normal sale flow. This is an RRA requirement — you cannot accidentally enter training mode during a real sale.
+</Warning>
+
+## Activating training mode
+
+1. In the POS screen, click the **Training Mode** toggle
+2. A prominent **TRAINING MODE** banner appears on screen
+3. All receipts show `TRAINING MODE` and `THIS IS NOT AN OFFICIAL RECEIPT`
+
+## Deactivating
+
+Click the **Training Mode** toggle again to return to normal sales mode.
+
+## API
+
+```bash
+POST /api/pos/training-mode
+{ "enabled": true, "branchId": "branch-uuid" }
+
+GET /api/pos/training-mode?branchId=branch-uuid
+```

@@ -1,0 +1,21 @@
+﻿---
+title: POS API
+description: Point of Sale endpoints
+---
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/pos/products` | List sellable inventory for a branch |
+| POST | `/api/pos/sale` | Complete a sale (NS receipt) |
+| POST | `/api/pos/returns` | Process a return (NR receipt) |
+| POST | `/api/pos/void-sale` | Void a completed sale |
+| GET | `/api/pos/shifts` | Get current cashier shift |
+| POST | `/api/pos/shifts` | Open or close a shift |
+| POST | `/api/pos/training-mode` | Enable/disable training mode |
+| GET | `/api/pos/training-mode` | Get training mode status |
+| POST | `/api/pos/daily-close` | Close the current day |
+| GET | `/api/pos/sales/lookup` | Look up a sale for return |
+| GET | `/api/pos/hold-sale` | List held carts |
+| POST | `/api/pos/hold-sale` | Hold a cart |
+| GET | `/api/pos/discounts` | List active discounts |
+| POST | `/api/pos/discounts` | Create a discount |

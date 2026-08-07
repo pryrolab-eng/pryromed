@@ -1,0 +1,41 @@
+---
+title: System Requirements
+description: Hardware and software prerequisites for running Pryrox
+---
+
+## Server requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| CPU | 2 cores | 4 cores |
+| RAM | 4 GB | 8 GB |
+| Storage | 20 GB SSD | 50 GB SSD |
+| OS | Ubuntu 20.04 / Windows Server 2019 | Ubuntu 22.04 LTS |
+| Node.js | 18.17 LTS | 20 LTS |
+| PostgreSQL | 14 | 15 or 16 |
+| Java (for VSDC WAR) | JDK 11 | JDK 17 |
+| Tomcat (for VSDC WAR) | 9.x | 10.x |
+
+## VSDC requirements
+
+The VSDC WAR is provided by an RRA-certified vendor. You will need:
+
+- VSDC WAR file from your vendor (Ishyiga, Stantech, Pivot Access, etc.)
+- Java JDK 11 or 17
+- Apache Tomcat 9+
+- Internet access for VSDC → RRA communication
+
+## Client (POS terminal)
+
+| Component | Requirement |
+|-----------|-------------|
+| Browser | Chrome 100+, Edge 100+, or Firefox 100+ |
+| Screen | 1280×720 minimum |
+| Printer | Thermal 80mm roll, A5, or A4 laser |
+| Internet | Required for VSDC sync; POS queues offline sales |
+
+## Network
+
+- The backend server must be able to reach the VSDC WAR (typically `localhost:8080` if on the same server)
+- The VSDC WAR must be able to reach the RRA EBM API server (internet required)
+- Firewall: allow outbound HTTPS from the VSDC server

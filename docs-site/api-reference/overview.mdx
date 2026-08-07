@@ -1,0 +1,77 @@
+---
+title: API Overview
+description: Pryrox REST API reference
+---
+
+## Base URL
+
+```
+https://your-pryrox-server/api
+```
+
+For local development: `http://localhost:3000/api`
+
+## Authentication
+
+All endpoints require a valid session cookie (`pryrox_session`). Obtain it by signing in at `/api/auth/signin`.
+
+For server-to-server requests, use an API key:
+
+```bash
+Authorization: Bearer your-api-key
+```
+
+## Test mode
+
+Add this header to any request to use the test/sandbox environment:
+
+```bash
+X-Pryrox-Mode: test
+```
+
+In test mode:
+- Requests use a sandboxed test pharmacy
+- EBM submissions go to the RRA test VSDC server
+- No production data is affected
+- Reset test data: `POST /api/test/reset`
+
+## Response format
+
+All responses return JSON. Successful responses use `2xx` status codes.
+
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+Error responses:
+```json
+{
+  "error": "Description of what went wrong",
+  "code": "ERROR_CODE"
+}
+```
+
+## Rate limiting
+
+- Default: **100 requests per minute** per IP
+- EBM endpoints: **60 requests per minute** per pharmacy
+
+## Endpoints by category
+
+<CardGroup cols={2}>
+  <Card title="POS" href="/api-reference/pos" icon="shopping-cart">
+    Sales, returns, shifts, products, discounts
+  </Card>
+  <Card title="Inventory" href="/api-reference/inventory" icon="box">
+    Stock management, medications, alerts
+  </Card>
+  <Card title="EBM / VSDC" href="/api-reference/ebm" icon="receipt">
+    VSDC integration, fiscal receipts, reports
+  </Card>
+  <Card title="Reports" href="/api-reference/reports" icon="chart-bar">
+    Sales, PLU, financial, insurance reports
+  </Card>
+</CardGroup>

@@ -1,0 +1,923 @@
+---
+title: Pryrox CIS Technical Specification
+description: Certified Invoicing System (CIS) Technical Specification for RRA VSDC Certification — Pryrox Pharmacy Management System
+---
+
+# Pryrox Pharmacy Management System
+## Certified Invoicing System (CIS) — Technical Specification
+
+**Document reference:** PRYROX-CIS-TECH-SPEC-v1.0
+**Version:** 1.0
+**Prepared for:** Rwanda Revenue Authority (RRA) — CIS/VSDC Certification
+**Classification:** Certification Submission
+
+---
+
+## Table of Contents
+
+1. Product Overview
+2. System Architecture
+3. VSDC Device Initialization
+4. Receipt Generation
+5. Tax Computation
+6. Sale Submission to VSDC
+7. Refund Processing
+8. Training Mode
+9. Copy and Proforma Receipts
+10. Electronic Journal
+11. X-Report and Z-Report
+12. Stock Management and Reporting
+13. Item Registration and Classification
+14. Purchase Management
+15. Offline Resilience and Error Handling
+16. Payment Methods
+17. Counters and Receipt Numbering
+18. VSDC API Compliance Summary
+
+---
+
+## 1. Product Overview
+
+**Product name:** Pryrox Pharmacy Management System
+**Product type:** Certified Invoicing System (CIS)
+**Version:** 1.x (see receipt SDC block for current build version)
+**Category:** Web-based pharmacy point-of-sale and management platform
+
+Pryrox is a multi-branch pharmacy management system built for the Rwandan market. It operates as a Certified Invoicing System (CIS) under the RRA Electronic Billing Machine (EBM) framework, connecting to a Virtual Sales Data Controller (VSDC) for real-time fiscal receipt signing and reporting.
+
+### 1.1 Compliance basis
+
+| Standard | Reference |
+|----------|-----------|
+| CIS Technical Specification for VSDC | RRA, 2018 |
+| VSDC API Technical Specification | RRA, v1.0.5, 2022 |
+| Rwanda VAT Law | Law No. 37/2012 and amendments |
+
+### 1.2 Software components
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Backend API | NestJS / TypeScript | Business logic, VSDC integration |
+| Frontend | Next.js / React | Cashier POS, admin dashboard |
+| Database | PostgreSQL (via Prisma ORM) | Persistent data storage |
+| Queue | PostgreSQL `ebm_queue` table | Offline submission retry |
+
+---
+
+## 2. System Architecture
+
+Pryrox connects to a VSDC instance (a Java WAR application deployed on Apache Tomcat) running on the local pharmacy network. All communication uses HTTP/JSON.
+
+```
+Cashier completes sale in Pryrox POS
+              │
+              ▼
+     EBM Adapter (NestJS backend)
+              │  POST /trnsSales/saveSales
+              │  5,000 ms timeout
+              ▼
+     VSDC WAR (localhost:8080, Apache Tomcat)
+              │  HTTPS
+              ▼
+     RRA EBM 2.1 API Server
+              │
+              ▼  rcptNo · intrlData · rcptSign · sdcId · mrcNo
+     Pryrox stores fiscal data and prints receipt
+```
+
+### 2.1 EBM module components
+
+| Component | Purpose |
+|-----------|---------|
+| `VsdcHttpAdapter` | Concrete REST client — all VSDC HTTP calls |
+| `EbmQueueService` | Offline queue with exponential back-off retry |
+| `EbmHealthService` | 60-second connectivity monitor |
+| `TaxComputationService` | Rwanda VAT calculation per class |
+| `FiscalReceiptRenderer` | QR code generation and receipt formatting |
+| `VsdcPayloadBuilder` | Typed VSDC request construction and validation |
+
+### 2.2 Data isolation
+
+Each pharmacy has its own `pharmacy_ebm_settings` record storing TIN, VSDC URL, BHF ID, device serial, SDC ID, MRC, and sequential counters. EBM data is never shared between pharmacies.
+
+---
+
+## 3. VSDC Device Initialization
+
+*Addresses RRA requirement Row 58 — Initialization API*
+
+### 3.1 Overview
+
+Before any fiscal receipt can be issued, Pryrox must initialize the VSDC device. This is a one-time setup per pharmacy that registers the device with RRA and retrieves the SDC ID and MRC.
+
+### 3.2 Configuration fields
+
+The pharmacy administrator navigates to **Settings → EBM / VSDC Integration** and enters:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| RRA TIN | 9-digit Tax Identification Number | `999000099` |
+| VSDC Base URL | URL of the local VSDC WAR deployment | `http://localhost:8080` |
+| Branch ID (BHF ID) | 2-character branch code (`00` = head office) | `00` |
+| Device Serial Number | Provided by VSDC vendor | `dvc999993204` |
+| Device Number | Provided by VSDC vendor | `9990000997006310` |
+
+### 3.3 Initialization API call
+
+On saving settings, Pryrox automatically calls:
+
+```
+POST /initializer/selectInitInfo
+Content-Type: application/json
+
+{
+  "tin": "999000099",
+  "bhfId": "00",
+  "dvcSrlNo": "dvc999993204"
+}
+```
+
+### 3.4 Successful response
+
+On success (result code `000`), Pryrox stores:
+
+| Field | Where stored | Printed on receipt |
+|-------|-------------|-------------------|
+| `sdcId` | `pharmacy_ebm_settings.sdc_id` | Yes — SDC Information block |
+| `mrcNo` | `pharmacy_ebm_settings.mrc_no` | Yes — MRC field |
+| `dvcId` | `pharmacy_ebm_settings.dvc_id` | No |
+
+### 3.5 Guard: sales blocked until initialized
+
+If a cashier attempts a sale before the device is initialized, Pryrox returns:
+
+> *"VSDC device is not initialized. Please complete device setup in EBM Settings before processing sales."*
+
+No VSDC call is made. The sale is blocked.
+
+### 3.6 MRC configuration (Row 6)
+
+The Machine Registration Code (MRC) is retrieved from the VSDC during initialization and stored per device. It is printed on every receipt in the SDC Information block and included in all VSDC payloads as `bhfId`.
+
+---
+
+## 4. Receipt Generation
+
+*Addresses RRA requirements Rows 7, 17, 18, 19, 21, 29, 31, 32, 33, 34, 35, 36*
+
+### 4.1 Supported receipt types
+
+| Code | Type | Transaction | VSDC signed | Submitted to RRA |
+|------|------|-------------|-------------|-----------------|
+| NS | Normal Sale | Sale | ✅ Yes | ✅ Yes |
+| NR | Normal Refund | Refund | ✅ Yes | ✅ Yes |
+| CS | Copy Sale | Reprint of NS | No (copy) | No |
+| CR | Copy Refund | Reprint of NR | No (copy) | No |
+| TS | Training Sale | Practice | ❌ No | ❌ No |
+| TR | Training Refund | Practice | ❌ No | ❌ No |
+| PS | Proforma Sale | Quotation | ❌ No | ❌ No |
+
+### 4.2 Receipt structure
+
+Every fiscal receipt (NS/NR) contains the following sections in order:
+
+**Header block** (minimum 3 lines — Row 33):
+```
+[Pharmacy Name]
+[Address Line 1]
+[Address Line 2 / City]
+TIN: [RRA TIN]
+```
+
+**TIN block** — first block on receipt (Row 34):
+```
+TIN: 999000099
+```
+
+**Item block** (Row 7):
+```
+[Item Name] x[Qty]    [Total] RWF  [TaxClass]
+```
+
+**Tax summary block** (Rows 46–49):
+```
+TOTAL B-18.00%     [Taxable Amount] RWF
+TOTAL TAX B           [Tax Amount] RWF
+```
+Class B is always printed. Classes A, C, D are printed only when used.
+
+**Payment block** (Row 26):
+```
+[CASH / CARD / MOBILE MONEY / INSURANCE]    [Amount] RWF
+```
+
+**SDC Information block** — before the last block (Row 34):
+```
+SDC INFORMATION
+Date: [DD/MM/YYYY]  Time: [HH:MM:SS]
+SDC ID: [sdcId]
+RECEIPT NUMBER: [rcptNo] [type]
+Internal Data: [intrlData formatted every 4 chars]
+Signature: [rcptSign formatted every 4 chars]
+[QR CODE]
+```
+
+**Footer block**:
+```
+RECEIPT NUMBER: [sequential counter]
+DATE: [DD/MM/YYYY]  TIME: [HH:MM:SS]
+MRC: [mrcNo]
+Software Version: [x.x.x]
+```
+
+### 4.3 QR code format (Row 31)
+
+The QR code encodes the following fields separated by `#`:
+
+```
+{DDMMYYYY}#{HHMMSS}#{sdcId}#{rcptNo}#{intrlData}#{rcptSign}
+```
+
+Example:
+```
+25052026#110735#SDC001000001#168/258#TE68-SLA2-34J5-EAV3#V249-J39C
+```
+
+### 4.4 RRA logo (Row 32)
+
+The official RRA logo is printed on every receipt regardless of type (NS, NR, CS, CR, TS, TR, PS).
+
+### 4.5 Software version (Row 21)
+
+The CIS software version is printed in the receipt footer and is verifiable from the receipt without access to the software.
+
+### 4.6 Print formats (Row 18)
+
+| Format | Paper size | Use case |
+|--------|-----------|---------|
+| `roll` | 80mm thermal | Standard pharmacy till |
+| `a5` | A5 | Desktop printer |
+| `a4` | A4 | Full invoice / insurance claims |
+
+### 4.7 Numeric precision (Row 19)
+
+All monetary values use `DECIMAL(12,2)` database storage — 12 digits total with 2 decimal places. This satisfies the minimum 13-digit display requirement including the 2 mandatory decimal places.
+
+---
+
+## 5. Tax Computation
+
+*Addresses RRA requirements Rows 45, 46, 47, 48, 49*
+
+### 5.1 Tax classes
+
+| Class | Rate | Description |
+|-------|------|-------------|
+| A | 0% | Tax-exempt (AEX) |
+| B | 18% | Standard VAT (tax-inclusive) |
+| C | 0% | Zero-rated |
+| D | 0% | Other zero-rated |
+
+Each medication in Pryrox has an assigned tax class. If none is assigned, the system defaults to **Class B** and records a warning in the audit log.
+
+### 5.2 VAT formula (Class B) — Row 47
+
+Rwanda uses **tax-inclusive pricing**. The VAT amount is extracted from the selling price:
+
+```
+taxAmtB = round(lineTotal × 18 / 118, 2)
+```
+
+**Example:** A medication selling for 1,000 RWF:
+```
+taxAmtB = round(1000 × 18 / 118, 2)
+        = round(152.5423..., 2)
+        = 152.54 RWF
+```
+
+### 5.3 Rounding rule — Row 47
+
+Half-up rounding to 2 decimal places: if the third decimal is ≥ 5, round up; if < 5, round down.
+
+When per-line rounding causes the sum of line tax amounts to drift from the expected aggregate total by more than 0.005 RWF, Pryrox applies a **last-line adjustment** to the final item, keeping the VSDC payload internally consistent.
+
+### 5.4 Receipt display rules — Rows 48, 49
+
+| Tax class | Display condition |
+|-----------|-----------------|
+| B (rate > 0) | **Always printed** on every receipt, even if no Class B items were sold. Value shown as 0.00 if unused. |
+| A, C, D (rate = 0) | Printed **only when at least one item with that class was sold.** |
+
+### 5.5 Tax totals sent to VSDC
+
+The VSDC payload includes separate taxable amounts and tax amounts per class:
+
+```json
+{
+  "taxblAmtA": 0.00, "taxAmtA": 0.00,
+  "taxblAmtB": 3000.00, "taxAmtB": 457.63,
+  "taxblAmtC": 0.00, "taxAmtC": 0.00,
+  "taxblAmtD": 0.00, "taxAmtD": 0.00,
+  "totTaxblAmt": 3000.00,
+  "totTaxAmt": 457.63,
+  "totAmt": 3000.00
+}
+```
+
+---
+
+## 6. Sale Submission to VSDC
+
+*Addresses RRA requirements Rows 8, 13, 14, 15, 16, 22, 27*
+
+### 6.1 Trigger
+
+A VSDC submission is triggered automatically when a cashier completes a sale in the Pryrox POS. It is non-blocking — the sale record is written to the database before the VSDC call, so a VSDC failure never cancels or reverses the sale.
+
+### 6.2 Payload construction
+
+Pryrox builds a typed `VsdcSaveSalesRequest` payload:
+
+```json
+{
+  "tin": "999000099",
+  "bhfId": "00",
+  "invcNo": "RCP-1748452991000",
+  "salesTyCd": "N",
+  "rcptTyCd": "NS",
+  "pmtTyCd": "01",
+  "salesSttsCd": "02",
+  "cfmDt": "20260508142311",
+  "salesDt": "20260508",
+  "taxblAmtA": 0.00, "taxAmtA": 0.00,
+  "taxblAmtB": 3000.00, "taxAmtB": 457.63,
+  "taxblAmtC": 0.00, "taxAmtC": 0.00,
+  "taxblAmtD": 0.00, "taxAmtD": 0.00,
+  "totTaxblAmt": 3000.00,
+  "totTaxAmt": 457.63,
+  "totAmt": 3000.00,
+  "itemList": [
+    {
+      "itemSeq": 1,
+      "itemCd": "RW2BXUXXX0000001",
+      "itemNm": "Amoxicillin 250mg",
+      "taxTyCd": "B",
+      "qty": 2,
+      "prc": 1500.00,
+      "splyAmt": 3000.00,
+      "taxblAmt": 3000.00,
+      "taxAmt": 457.63,
+      "totAmt": 3000.00
+    }
+  ]
+}
+```
+
+### 6.3 Endpoint and timeout
+
+```
+POST {vsdc_base_url}/trnsSales/saveSales
+Content-Type: application/json
+Timeout: 5,000 ms
+```
+
+### 6.4 Successful response handling (Row 15)
+
+On result code `000`, Pryrox extracts and stores all 6 fiscal fields:
+
+| VSDC field | Stored in | Printed on receipt |
+|------------|-----------|-------------------|
+| `rcptNo` | `sales.rra_invoice_number` | Yes — Receipt Number |
+| `intrlData` | `sales.ebm_metadata.intrlData` | Yes — Internal Data |
+| `rcptSign` | `sales.ebm_metadata.rcptSign` | Yes — Signature |
+| `sdcId` | `sales.ebm_metadata.sdcId` | Yes — SDC ID |
+| `mrcNo` | `sales.ebm_metadata.mrcNo` | Yes — MRC |
+| `vsdcRcptPbctDate` | `sales.ebm_metadata.vsdcRcptPbctDate` | Yes — VSDC date |
+
+### 6.5 Blocking invalid transactions (Row 27)
+
+Pryrox enforces before every sale:
+- Cart must not be empty
+- Every item requires: name, quantity > 0, unit price > 0
+- Stock must be sufficient at the branch
+- Batch must not be expired
+
+A sale that fails any of these checks returns an error and is not written to the database.
+
+### 6.6 Insurance split payment
+
+When a sale includes insurance coverage, each item is split into two line entries in the VSDC payload — one for the insurer share and one for the patient copay — maintaining proportional tax attribution.
+
+---
+
+## 7. Refund Processing
+
+*Addresses RRA requirements Rows 9, 28, 56, 57*
+
+### 7.1 Overview
+
+Refunds are issued as **NR (Normal Refund)** receipts. Pryrox does not allow modification of an approved NS receipt — errors are corrected exclusively through the NR process with clear evidence and reference to the original.
+
+### 7.2 Refund rules
+
+- Every NR receipt must reference the original NS receipt number
+- NR submission to VSDC is **blocked** if the original sale has no confirmed `rra_invoice_number` (i.e., if the original NS was never successfully fiscalised, the NR cannot be issued)
+- Refund amounts are always negative on the receipt and in the VSDC payload
+
+### 7.3 NR payload
+
+Pryrox builds the refund payload with:
+
+```json
+{
+  "rcptTyCd": "NR",
+  "orgInvcNo": "[original rra_invoice_number]",
+  "totAmt": -3000.00,
+  "itemList": [
+    { "qty": 2, "prc": -1500.00, "splyAmt": -3000.00, "taxblAmt": -3000.00, "taxAmt": -457.63, "totAmt": -3000.00 }
+  ]
+}
+```
+
+All monetary values in the item list are negative. `qty` remains positive.
+
+### 7.4 Receipt appearance (Rows 56, 57)
+
+```
+NORMAL REFUND (NR)
+─────────────────────────
+Amoxicillin 250mg x2   -3,000 RWF  B
+─────────────────────────
+TOTAL                  -3,000 RWF
+─────────────────────────
+REF. NORMAL RECEIPT#: 168/258
+```
+
+### 7.5 Immutability of original receipt (Row 28)
+
+The original NS receipt record in the database is never modified. The refund is a separate `returns` record referencing the original `sale_id`. The original receipt remains intact in the system.
+
+---
+
+## 8. Training Mode
+
+*Addresses RRA requirements Rows 11, 41, 42*
+
+### 8.1 Activation — separate from sales mode (Row 42)
+
+Training mode is activated exclusively through a dedicated control separate from the normal sale flow. A cashier cannot accidentally enter training mode while processing a real sale.
+
+**API endpoint (separate from sale endpoint):**
+```
+POST /api/pos/training-mode
+{ "enabled": true, "branchId": "..." }
+```
+
+**Status check:**
+```
+GET /api/pos/training-mode?branchId=...
+```
+
+### 8.2 Behaviour during training mode
+
+- All receipts are issued as **TS** (Training Sale) or **TR** (Training Refund)
+- TS/TR receipts are **NOT submitted to the VSDC**
+- TS/TR receipts are **NOT reported to RRA**
+- The `ebm_status` on the sale is set to `training`
+- A prominent **TRAINING MODE** banner is displayed on the POS screen
+
+### 8.3 Training receipt content (Row 41)
+
+Training receipts contain the same structural information as normal receipts but display:
+- `TRAINING MODE` label at the top
+- `THIS IS NOT AN OFFICIAL RECEIPT` below the totals
+
+### 8.4 Deactivation
+
+The cashier clicks the Training Mode toggle again to return to normal sales mode. The toggle state is stored on the active cashier shift.
+
+---
+
+## 9. Copy and Proforma Receipts
+
+*Addresses RRA requirements Rows 10, 12, 40, 43, 54, 55*
+
+### 9.1 Copy receipts (CS/CR) — Rows 10, 40, 54
+
+A copy of an existing NS or NR receipt can be reprinted from the Sales History screen.
+
+- Copy receipts contain **exactly the same data** as the original
+- The label **COPY** is printed prominently at the top
+- `THIS IS NOT AN OFFICIAL RECEIPT` is printed below the totals
+- The SDC Information block from the original is preserved
+
+### 9.2 Proforma receipts (PS) — Rows 12, 43
+
+A proforma receipt can be issued as an advance or quotation:
+
+- Contains the same structure as an NS receipt
+- Labelled **PROFORMA** at the top
+- `THIS IS NOT AN OFFICIAL RECEIPT` printed below totals
+- Not submitted to VSDC
+
+### 9.3 Disclaimer placement (Row 55)
+
+For all non-official receipts (CS, CR, TS, TR, PS), the following text appears after the tax calculation section and at the bottom:
+
+```
+THIS IS NOT AN OFFICIAL RECEIPT
+```
+
+---
+
+## 10. Electronic Journal
+
+*Addresses RRA requirement Row 44*
+
+### 10.1 Overview
+
+After each successful NS receipt submission to the VSDC, Pryrox sends the full journal text to the VSDC Electronic Journal via `POST /ej/saveEjData`.
+
+### 10.2 Journal content
+
+The journal contains the same data as the printed receipt:
+
+```
+RECEIPT: RCP-1748452991000
+DATE: 2026-05-08T14:23:11.000Z
+PHARMACY: [pharmacyId]
+CUSTOMER: Walk-in Customer
+PAYMENT: cash
+  Amoxicillin 250mg x2 @ 1500 = 3000
+TOTAL: 3000
+STATUS: submitted
+RRA_RECEIPT: 168/258
+```
+
+### 10.3 Non-blocking
+
+The EJ submission is non-blocking. If it fails, the sale and NS receipt are unaffected. The failure is logged in the audit trail.
+
+---
+
+## 11. X-Report and Z-Report
+
+*Addresses RRA requirements Rows 20, 52*
+
+### 11.1 Z-Report — end of day (Row 20)
+
+The Z-Report is the official RRA end-of-day fiscal summary. It is submitted to the VSDC automatically when a cashier closes their shift.
+
+**Trigger:**
+```
+POST /api/pos/shifts
+{ "action": "close", "shiftId": "...", "actualCash": 50000 }
+```
+
+**VSDC endpoint:**
+```
+POST {vsdc_base_url}/trnsSales/saveZReport
+```
+
+**Z-Report payload includes:**
+
+| Field | Value source |
+|-------|-------------|
+| `zreportNo` | Sequential integer counter per pharmacy (atomic DB increment — not UUID) |
+| `salesDt` | Current date YYYYMMDD |
+| `totNsInvcCnt` | `cashier_shifts.ns_count` — actual NS receipts issued this shift |
+| `totNrInvcCnt` | `cashier_shifts.nr_count` — actual NR receipts issued this shift |
+| `totTaxblAmtB` | Total taxable amount for Class B sales |
+| `totTaxAmtB` | Total VAT collected on Class B sales |
+| `totAmt` | Total shift sales amount |
+
+### 11.2 Z-Report duplicate prevention
+
+The system stores `z_report_status` on the shift. If a Z-Report has already been submitted for a shift, any subsequent attempt is rejected with HTTP 409.
+
+### 11.3 Z-Report failure handling
+
+If the VSDC returns an error or times out:
+- The **shift still closes** — the cashier is not blocked
+- `z_report_status` is set to `failed`
+- A high-severity alert is created for the pharmacy administrator
+- The administrator can retry from the EBM settings page
+
+### 11.4 X-Report — intra-day (Row 20)
+
+The X-Report returns sales totals since the last Z-Report without resetting counters. It is available on demand:
+
+```
+GET /api/integrations/rra-ebm/x-report
+```
+
+**VSDC endpoint:**
+```
+POST {vsdc_base_url}/trnsSales/selectSalesInfo
+```
+
+**Response includes:** total sales amount, total refund amount, total tax, NS count, NR count.
+
+### 11.5 NS/NR counters (Row 52)
+
+Every cashier shift tracks:
+- `ns_count` — incremented after each successful NS VSDC submission
+- `nr_count` — incremented after each successful NR VSDC submission
+
+These are used directly in the Z-Report `totNsInvcCnt` and `totNrInvcCnt` fields.
+
+---
+
+## 12. Stock Management and Reporting
+
+*Addresses RRA requirements Rows 23, 53, 72, 73, 74*
+
+### 12.1 Real-time inventory tracking (Row 53)
+
+Pryrox maintains real-time stock quantities for all countable items:
+- **On sale:** inventory quantity decremented atomically within the sale transaction
+- **On return (restock):** inventory quantity incremented
+- **On purchase receive:** inventory quantity incremented
+- **Low-stock alerts:** generated when quantity falls to or below the minimum stock level
+
+### 12.2 Stock Out reporting to VSDC (Row 72)
+
+After every successful sale, Pryrox sends a stock-out record to the VSDC for each item sold:
+
+```
+POST {vsdc_base_url}/saveStockItems/saveStockItems
+
+{
+  "tin": "999000099",
+  "bhfId": "00",
+  "sarNo": 47,           ← sequential integer per pharmacy
+  "sarTyCd": "11",       ← 11 = Sale Outgoing
+  "regTyCd": "A",        ← Automatic
+  "ocrnDt": "20260508",
+  "itemList": [{ "itemCd": "...", "qty": 2, ... }]
+}
+```
+
+**sarTyCd values used by Pryrox:**
+
+| Code | Meaning | Trigger |
+|------|---------|---------|
+| `11` | Sale Outgoing | Every sale |
+| `12` | Sales Return Incoming | Return with restock disposition |
+| `01` | Purchase Incoming | Purchase order received |
+
+### 12.3 Sequential `sarNo` (Row 73)
+
+The `sarNo` field must be a persistent sequential integer. Pryrox uses an atomic database increment on `pharmacy_ebm_settings.sar_counter` using `UPDATE ... RETURNING` to avoid race conditions. Each pharmacy has its own independent counter starting at 1.
+
+### 12.4 Stock Master update (Row 73)
+
+After every stock movement (sale, return, purchase receive), Pryrox reports the new remaining quantity to the VSDC:
+
+```
+POST {vsdc_base_url}/stockMaster/saveStockMaster
+
+{
+  "tin": "999000099",
+  "bhfId": "00",
+  "itemCd": "RW2BXUXXX0000001",
+  "rsdQty": 98
+}
+```
+
+### 12.5 Real-time synchronisation (Row 74)
+
+Stock updates are synchronised at real-time level:
+- Approved purchase receives → stock incremented + stock IN reported to VSDC
+- Sales → stock decremented + stock OUT reported to VSDC
+- All stock IO and stock master calls are made within the same request lifecycle
+
+---
+
+## 13. Item Registration and Classification
+
+*Addresses RRA requirements Rows 60, 61, 63, 64*
+
+### 13.1 Item code generation (Row 60)
+
+When a new medication is created in Pryrox, an item code is generated based on:
+
+```
+{CountryCode}{ProductType}{PackagingUnit}{QuantityUnit}{Sequence}
+Example: RW2BXUXXX0000001
+  RW  = Rwanda (origin)
+  2   = Finished Product (item type)
+  BX  = Box (packaging unit)
+  U   = Unit (quantity unit)
+  XXX0000001 = sequential identifier
+```
+
+### 13.2 Save Item API (Row 63)
+
+Medications are registered with the VSDC via:
+
+```
+POST {vsdc_base_url}/items/saveItems
+```
+
+Bulk sync available via `POST /api/integrations/rra-ebm/sync-items`. Only medications without a confirmed VSDC item code are submitted. On success, the VSDC-assigned item code is stored in `medications.vsdc_item_cd`.
+
+### 13.3 Select Item API (Row 64)
+
+Pryrox retrieves registered items from the VSDC to refresh and verify item codes:
+
+```
+POST {vsdc_base_url}/items/selectItem
+```
+
+Available via `POST /api/integrations/rra-ebm/select-items`. Any updated VSDC-assigned codes are automatically persisted to `medications.vsdc_item_cd`.
+
+### 13.4 UNSPSC Item Classification (Row 61)
+
+Item classification codes are fetched from the VSDC and used in the `itemClsCd` field of all item payloads:
+
+```
+POST {vsdc_base_url}/itemClass/selectItemsClass
+```
+
+Default pharmaceutical class code: `4710000000`.
+
+---
+
+## 14. Purchase Management
+
+*Addresses RRA requirements Rows 37, 38, 70, 71*
+
+### 14.1 Incoming purchases (Rows 38, 70)
+
+Pryrox retrieves pending purchase records from the VSDC:
+
+```
+POST {vsdc_base_url}/trnsPurchase/selectTrnsPurchaseSales
+{ "tin": "...", "bhfId": "00", "lastReqDt": "20200101000000" }
+```
+
+Available via `GET /api/integrations/rra-ebm/purchases`.
+
+### 14.2 Purchase confirmation (Row 71)
+
+When a purchase order is received and verified, Pryrox confirms it with the VSDC with real computed tax totals:
+
+```
+POST {vsdc_base_url}/trnsPurchase/savePurchases
+{
+  "tin": "999000099",
+  "bhfId": "00",
+  "invcNo": "PO-2026-001",
+  "spplrTin": "111000111",
+  "taxAmtB": 457.63,
+  "totAmt": 3000.00,
+  "items": [...]
+}
+```
+
+Tax totals are computed from the item list — not hardcoded to zero.
+
+### 14.3 Purchase code management (Rows 37, 38)
+
+For B2B sales, the `prcOrdCd` (purchase order code, exactly 6 characters) is included in the `POST /trnsSales/saveSales` payload when `salesTypeCode: 'B'`. The code is provided by the buyer and validated against VSDC.
+
+---
+
+## 15. Offline Resilience and Error Handling
+
+*Addresses RRA requirements Rows 13, 16, 22, 75*
+
+### 15.1 Offline queue
+
+When the VSDC is unreachable (timeout or network error), Pryrox:
+
+1. Stores the VSDC payload in the `ebm_queue` database table with `status: 'queued'`
+2. Updates the sale with `ebm_status: 'queued'`
+3. Prints a pending disclaimer on the receipt: *"EBM submission pending — this receipt is not yet a valid fiscal document"*
+4. Returns success to the cashier — the sale is not blocked
+
+### 15.2 Automatic retry with exponential back-off
+
+A background job runs every 60 seconds and retries all queued entries:
+
+| Attempt | Minimum wait before retry |
+|---------|--------------------------|
+| 1 | 30 seconds |
+| 2 | 60 seconds |
+| 3 | 120 seconds |
+| 4 | 240 seconds |
+| 5 | 480 seconds |
+
+After 5 failed attempts, the entry is marked `failed` and a critical alert is created.
+
+### 15.3 VSDC health monitoring (Row 22)
+
+Pryrox checks VSDC connectivity every **60 seconds** for each pharmacy with an open cashier shift:
+
+- **VSDC offline → online:** the offline queue drains automatically
+- **5+ consecutive failures:** a critical alert is created and the pharmacy administrator is notified
+- **Status endpoint:** `GET /api/integrations/rra-ebm/status` returns connectivity state, queue count, and last successful submission time
+
+### 15.4 Error code handling (Row 75)
+
+All VSDC error result codes are:
+- Logged in the audit trail with full payload context
+- Surfaced to the cashier as a readable error message
+- Stored on the sale/return record as `ebm_status: 'failed'`
+
+Common VSDC error codes and their resolutions are documented in the operator guide.
+
+### 15.5 Timeout
+
+All VSDC API calls use a **5,000ms timeout** for sale/refund operations and **30,000ms** for reports and batch operations. Timeouts are treated as network errors and trigger the offline queue.
+
+---
+
+## 16. Payment Methods
+
+*Addresses RRA requirement Row 26*
+
+Pryrox maps all payment methods to VSDC `pmtTyCd` codes:
+
+| Pryrox method | VSDC code | Description |
+|---------------|-----------|-------------|
+| Cash | `01` | Cash payment |
+| Insurance | `02` | Insurance / credit |
+| Bank Check | `04` | Cheque |
+| Card | `05` | Bank card |
+| Mobile Money | `06` | Mobile payment (MTN, Airtel) |
+| Mixed/Split | `07` | Multiple methods |
+
+The payment method is recorded on every receipt and included in the VSDC sale payload.
+
+---
+
+## 17. Counters and Receipt Numbering
+
+*Addresses RRA requirements Rows 50, 51, 52*
+
+### 17.1 VSDC receipt counter (Rows 50, 51)
+
+The authoritative receipt counter is assigned by the VSDC as `rcptNo` in the `POST /trnsSales/saveSales` response. It starts at 1 and increments by 1 per transaction. This is the counter printed on the receipt and used for references in NR refunds.
+
+### 17.2 Local receipt number
+
+Pryrox assigns a local receipt number (`RCP-{timestamp}`) at the time of sale for immediate identification before VSDC confirmation.
+
+### 17.3 NS/NR shift counters (Row 52)
+
+Each cashier shift tracks:
+- `ns_count`: number of Normal Sale receipts issued and submitted to VSDC during the shift
+- `nr_count`: number of Normal Refund receipts issued and submitted to VSDC during the shift
+
+These counters exclude void, training, copy, and proforma receipts. They are used directly in the Z-Report.
+
+### 17.4 Z-Report sequential counter
+
+The Z-Report number (`zreportNo`) is a persistent sequential integer per pharmacy, stored in `pharmacy_ebm_settings.z_report_counter` and atomically incremented on each Z-Report submission.
+
+### 17.5 SAR sequential counter
+
+The stock movement number (`sarNo`) is a persistent sequential integer per pharmacy, stored in `pharmacy_ebm_settings.sar_counter` and atomically incremented on each stock IO submission.
+
+---
+
+## 18. VSDC API Compliance Summary
+
+This section maps each VSDC API endpoint to the corresponding RRA checklist row.
+
+| Row | API Endpoint | Method | Purpose | Status |
+|-----|-------------|--------|---------|--------|
+| 58 | `/initializer/selectInitInfo` | POST | Device initialization | ✅ |
+| 59 | `/code/selectCodes` | POST | Fetch all system codes | ✅ |
+| 61 | `/itemClass/selectItemsClass` | POST | UNSPSC classification codes | ✅ |
+| 62 | `/customers/selectCustomer` | POST | Validate customer TIN | ✅ |
+| 63 | `/items/saveItems` | POST | Register medications | ✅ |
+| 64 | `/items/selectItem` | POST | Fetch registered items | ✅ |
+| 65 | `/notices/selectNotices` | POST | RRA notices | ✅ |
+| 66/67 | `/imports/selectImportItems` | POST | Import items with date management | ✅ |
+| 68 | `/imports/updateImportItems` | POST | Update import item status | ✅ |
+| 69 | `/trnsSales/saveSales` (NS) | POST | Submit sale | ✅ |
+| 9/57 | `/trnsSales/saveSales` (NR) | POST | Submit refund | ✅ |
+| 20 | `/trnsSales/saveZReport` | POST | Z-Report on shift close | ✅ |
+| 20 | `/trnsSales/selectSalesInfo` | POST | X-Report intra-day | ✅ |
+| 70 | `/trnsPurchase/selectTrnsPurchaseSales` | POST | List pending purchases | ✅ |
+| 71 | `/trnsPurchase/savePurchases` | POST | Confirm purchase | ✅ |
+| 44 | `/ej/saveEjData` | POST | Electronic journal | ✅ |
+| 72 | `/saveStockItems/saveStockItems` | POST | Stock in/out | ✅ |
+| 73 | `/stockMaster/saveStockMaster` | POST | Stock balance | ✅ |
+
+---
+
+## Document Information
+
+| Field | Value |
+|-------|-------|
+| Document title | Pryrox CIS Technical Specification |
+| Document reference | PRYROX-CIS-TECH-SPEC-v1.0 |
+| Version | 1.0 |
+| Prepared by | Pryrox Technical Team |
+| Contact | support@pryrox.com |
+| Submitted to | Rwanda Revenue Authority — CIS/VSDC Certification Unit |
+| Certification email | cis_sdc_certification@rra.gov.rw |

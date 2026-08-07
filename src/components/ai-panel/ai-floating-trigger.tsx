@@ -1,6 +1,7 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Sparkles, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAiPanel } from "./ai-panel-context";
 import { usePharmacyEntitlements } from "@/hooks/usePharmacyEntitlements";
@@ -15,8 +16,10 @@ export function AiFloatingTrigger() {
   const { can, isHydrating, isEntitlementsReady } = usePharmacyEntitlements({
     enabled: !isAdminRoute,
   });
+  const [hovered, setHovered] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
-  if (isOpen || AI_PAGE_PATHS.includes(pathname)) return null;
+  if (isOpen || AI_PAGE_PATHS.includes(pathname) || dismissed) return null;
 
   const handleClick = () => {
     if (isAdminRoute) {
@@ -32,7 +35,32 @@ export function AiFloatingTrigger() {
   };
 
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+    <div
+      className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Close button — appears on hover at top-right corner */}
+      <button
+        type="button"
+        aria-label="Dismiss AI assistant"
+        onClick={(e) => {
+          e.stopPropagation();
+          setDismissed(true);
+        }}
+        className={cn(
+          "absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full",
+          "bg-neutral-800 dark:bg-neutral-600 text-white shadow-md",
+          "transition-all duration-150",
+          hovered
+            ? "opacity-100 scale-100"
+            : "opacity-0 scale-75 pointer-events-none",
+        )}
+      >
+        <X className="h-3 w-3" strokeWidth={2.5} />
+      </button>
+
+      {/* Main pill button */}
       <button
         onClick={handleClick}
         className={cn(

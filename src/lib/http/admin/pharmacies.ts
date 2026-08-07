@@ -142,7 +142,7 @@ export async function uploadAdminPharmacyLogo(
   formData.append("file", file);
   const res = await fetch(
     `/api/admin/pharmacies/${encodeURIComponent(pharmacyId)}/branding/upload`,
-    { method: "POST", body: formData },
+    { method: "POST", credentials: "include", body: formData },
   );
   let data: unknown = {};
   try {

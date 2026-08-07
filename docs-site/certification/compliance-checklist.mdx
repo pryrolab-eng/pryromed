@@ -1,0 +1,120 @@
+---
+title: RRA CIS/VSDC Compliance Checklist
+description: 75-item RRA certification checklist — Pryrox compliance status and document references
+---
+
+<Info>
+  The **Document Reference** column below shows exactly what to write in the RRA Excel form.
+  All references point to sections of the submitted **Pryrox CIS Technical Specification (PRYROX-CIS-TECH-SPEC-v1.0)**.
+</Info>
+
+## How to fill the RRA Excel
+
+For the **Document Reference** column in the RRA form, write the section reference like this:
+
+> `Technical Specification §4.2 — QR Code Format`
+
+RRA evaluators will open the submitted Technical Specification PDF, go to that section, and verify the claim. They do **not** check source code.
+
+---
+
+## Rows 1–5 · Enclosed Documentation
+
+| # | Requirement | ✓ | Document Reference |
+|---|-------------|---|--------------------|
+| 1 | Product brochure | ✅ | *Pryrox Product Brochure* (separate document) |
+| 2 | Product warranty statement | ✅ | *Warranty Statement* (separate document) |
+| 3 | User manual | ✅ | *User Manual* (separate document) |
+| 4 | Installation guide | ✅ | *Technical Specification §2 — System Architecture* |
+| 5 | Programming and configuration manual | ✅ | *Technical Specification §3 — VSDC Device Initialization* |
+
+---
+
+## Rows 6–25 · Operational Functions
+
+| # | Requirement | ✓ | Document Reference |
+|---|-------------|---|--------------------|
+| 6 | Configure MRC per device | ✅ | Technical Specification §3.6 — MRC Configuration |
+| 7 | Generate all receipt types with item details | ✅ | Technical Specification §4.1 — Supported Receipt Types |
+| 8 | Normal Sale (NS) receipt | ✅ | Technical Specification §6 — Sale Submission to VSDC |
+| 9 | Normal Refund (NR) receipt | ✅ | Technical Specification §7 — Refund Processing |
+| 10 | Copy (CS/CR) receipt | ✅ | Technical Specification §9.1 — Copy Receipts |
+| 11 | Training (TS/TR) receipt | ✅ | Technical Specification §8 — Training Mode |
+| 12 | Proforma (PS) receipt | ✅ | Technical Specification §9.2 — Proforma Receipts |
+| 13 | Communication protocol CIS→VSDC | ✅ | Technical Specification §2 — System Architecture |
+| 14 | Request receipt signature from VSDC | ✅ | Technical Specification §6.2 — Payload Construction |
+| 15 | Receive and add VSDC response to receipt | ✅ | Technical Specification §6.4 — Successful Response Handling |
+| 16 | Block receipt on VSDC error | ✅ | Technical Specification §15 — Offline Resilience and Error Handling |
+| 17 | Print receipt for every transaction | ✅ | Technical Specification §4 — Receipt Generation |
+| 18 | Multiple print formats (A4, A5, roll) | ✅ | Technical Specification §4.6 — Print Formats |
+| 19 | 13-digit display with 2 decimal places | ✅ | Technical Specification §4.7 — Numeric Precision |
+| 20 | X-Report and Z-Report | ✅ | Technical Specification §11 — X-Report and Z-Report |
+| 21 | Software version on receipt | ✅ | Technical Specification §4.5 — Software Version |
+| 22 | Block receipts if VSDC disconnected | ✅ | Technical Specification §15.3 — VSDC Health Monitoring |
+| 23 | Send stock info to VSDC | ✅ | Technical Specification §12 — Stock Management and Reporting |
+| 24 | PLU report | ✅ | Technical Specification §12 (PLU available via reports API) |
+| 25 | Detailed sales/purchases/stock/items/importation reports | ✅ | Technical Specification §12 |
+
+---
+
+## Rows 26–57 · Receipt, Printing, Tax, Counters
+
+| # | Requirement | ✓ | Document Reference |
+|---|-------------|---|--------------------|
+| 26 | Register means of payment | ✅ | Technical Specification §16 — Payment Methods |
+| 27 | Cannot register without item/qty/price | ✅ | Technical Specification §6.5 — Blocking Invalid Transactions |
+| 28 | Cannot modify approved receipt | ✅ | Technical Specification §7.5 — Immutability of Original Receipt |
+| 29 | One original per transaction | ✅ | Technical Specification §4 — Receipt Generation |
+| 30 | Reprint as COPY with all requirements | ✅ | Technical Specification §9.1 — Copy Receipts |
+| 31 | QR code on receipt | ✅ | Technical Specification §4.3 — QR Code Format |
+| 32 | Official RRA logo on every receipt | ✅ | Technical Specification §4.4 — RRA Logo |
+| 33 | Receipt header name and address ≥3 lines | ✅ | Technical Specification §4.2 — Receipt Structure |
+| 34 | TIN in first block; SDC info before last block | ✅ | Technical Specification §4.2 — Receipt Structure |
+| 35 | Customer TIN or mobile number | ✅ | Technical Specification §6.2 — Payload Construction |
+| 36 | Date, hour, minutes, seconds on receipt | ✅ | Technical Specification §4.2 — Receipt Structure |
+| 37 | Purchase code from sales (B2B) | ✅ | Technical Specification §14.3 — Purchase Code Management |
+| 38 | Purchase code from purchases | ✅ | Technical Specification §14.1 — Incoming Purchases |
+| 39 | Price discounts | ✅ | Technical Specification §6.2 — Payload Construction |
+| 40 | Copy receipt: same data as original + COPY label | ✅ | Technical Specification §9.1 — Copy Receipts |
+| 41 | Training receipt similar to NS/NR + TRAINING label | ✅ | Technical Specification §8.3 — Training Receipt Content |
+| 42 | Training mode activated by separate function | ✅ | Technical Specification §8.1 — Activation |
+| 43 | Proforma with PROFORMA label | ✅ | Technical Specification §9.2 — Proforma Receipts |
+| 44 | CIS journal records (EJ) | ✅ | Technical Specification §10 — Electronic Journal |
+| 45 | Configure tax rates A, B, C, D | ✅ | Technical Specification §5.1 — Tax Classes |
+| 46 | Print tax values with class labels | ✅ | Technical Specification §5.4 — Receipt Display Rules |
+| 47 | Round tax to 2 decimals (half-up) | ✅ | Technical Specification §5.3 — Rounding Rule |
+| 48 | Class B always printed on every receipt | ✅ | Technical Specification §5.4 — Receipt Display Rules |
+| 49 | Class A/C/D printed only when used | ✅ | Technical Specification §5.4 — Receipt Display Rules |
+| 50 | Consecutive receipt counter | ✅ | Technical Specification §17.1 — VSDC Receipt Counter |
+| 51 | Counter starts at 1, increments by 1 | ✅ | Technical Specification §17.1 — VSDC Receipt Counter |
+| 52 | Item count per receipt (line by line, no voids) | ✅ | Technical Specification §17.3 — NS/NR Shift Counters |
+| 53 | Manage stock for countable items | ✅ | Technical Specification §12.1 — Real-Time Inventory Tracking |
+| 54 | Print copy sales from existing receipt | ✅ | Technical Specification §9.1 — Copy Receipts |
+| 55 | COPY/TRAINING/PROFORMA label + disclaimer | ✅ | Technical Specification §9.3 — Disclaimer Placement |
+| 56 | Refund receipt with negative (−) amounts | ✅ | Technical Specification §7.3 — NR Payload |
+| 57 | Refund references original receipt number | ✅ | Technical Specification §7.2 — Refund Rules |
+
+---
+
+## Rows 58–75 · VSDC API Integration
+
+| # | Requirement | ✓ | Document Reference |
+|---|-------------|---|--------------------|
+| 58 | Initialization API | ✅ | Technical Specification §3 — VSDC Device Initialization |
+| 59 | Codes API | ✅ | Technical Specification §18 — VSDC API Compliance Summary |
+| 60 | Item codes auto-generated | ✅ | Technical Specification §13.1 — Item Code Generation |
+| 61 | Item Classification / UNSPSC | ✅ | Technical Specification §13.4 — UNSPSC Item Classification |
+| 62 | Customer API | ✅ | Technical Specification §18 — VSDC API Compliance Summary |
+| 63 | Save Item API | ✅ | Technical Specification §13.2 — Save Item API |
+| 64 | Select Item API | ✅ | Technical Specification §13.3 — Select Item API |
+| 65 | Notice API | ✅ | Technical Specification §18 — VSDC API Compliance Summary |
+| 66 | Import Items API | ✅ | Technical Specification §18 — VSDC API Compliance Summary |
+| 67 | Import request date management | ✅ | Technical Specification §18 — VSDC API Compliance Summary |
+| 68 | Import status update | ✅ | Technical Specification §18 — VSDC API Compliance Summary |
+| 69 | Sales Transaction Save | ✅ | Technical Specification §6 — Sale Submission to VSDC |
+| 70 | Purchase-Sales Transaction Select | ✅ | Technical Specification §14.1 — Incoming Purchases |
+| 71 | Purchase Transaction Save | ✅ | Technical Specification §14.2 — Purchase Confirmation |
+| 72 | Stock In/Out Save | ✅ | Technical Specification §12.2 — Stock Out Reporting |
+| 73 | Stock Master Save | ✅ | Technical Specification §12.4 — Stock Master Update |
+| 74 | Real-time stock sync | ✅ | Technical Specification §12.5 — Real-Time Synchronisation |
+| 75 | Display and handle VSDC errors | ✅ | Technical Specification §15.4 — Error Code Handling |
