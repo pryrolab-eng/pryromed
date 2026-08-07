@@ -37,7 +37,7 @@ const ALL_FEATURES: { key: string; label: string; group: string }[] = [
   { key: "billing.self_serve",  label: "Billing",             group: "Settings" },
 ];
 
-const FEATURE_GROUPS = [...new Set(ALL_FEATURES.map((f) => f.group))];
+const FEATURE_GROUPS = Array.from(new Set(ALL_FEATURES.map((f) => f.group)));
 
 export function AdminDemoPanel() {
   const { settings, setSettings } = useAdminSettings();
@@ -76,7 +76,7 @@ export function AdminDemoPanel() {
   function toggleFeature(key: string) {
     const current = new Set(demo.features);
     current.has(key) ? current.delete(key) : current.add(key);
-    updateDemo({ features: [...current] });
+    updateDemo({ features: Array.from(current) });
   }
 
   const isExpired = demo.expires_at ? new Date(demo.expires_at) < new Date() : false;
